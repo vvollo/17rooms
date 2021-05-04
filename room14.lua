@@ -155,7 +155,7 @@ room {
 	
 
 }: with {'room14_wardrobe', 'room14_door', 'room14_carpet', 'room14_plan', 'room14_stairs', 'room14_ladder', 'room14_dress', 
-'room14_cloth', 'room14_mirror', 'room14_dummy', 'room14_picture', 'room14_drawer', 'room14_showcase', 'room14_walls',}
+'room14_cloth', 'room14_mirror', 'room14_dummy', 'room14_picture', 'room14_drawer', 'room14_showcase', 'room14_walls','room14_ceiling'}
 
 
 
