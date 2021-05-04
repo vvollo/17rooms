@@ -13,6 +13,10 @@ Verb {
 
 mp.msg.Play = {}
 function mp:Play(w)
+    if not w then
+        p "На чём ты хочешь играть?";
+        return;
+    end
     if mp:check_touch() then
         return
     end
