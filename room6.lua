@@ -408,6 +408,7 @@ obj {
         else
             _'kitchen_lift'.loc = 'down';
             _'kitchen_old_man'.counter_lift_interaction = 0;
+            _'kitchen_old_man'.counter_lift_interaction_2 = 0;
             p"Ты нажимаешь кнопку, и лифт возвращается вниз.";
         end;
     end;
