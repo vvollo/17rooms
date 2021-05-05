@@ -25,6 +25,10 @@ game : dict {
   ["легинсы/рд"] = 'легинсов';
   ["леггинсы/вн"] = 'леггинсы';
   ["легинсы/вн"] = 'легинсы';
+  ["чёрный/рд"] = 'чёрного';
+  ["чёрный/вн"] = 'чёрный';
+  ["твидовый/рд"] = 'твидового';
+  ["твидовый/вн"] = 'твидовый';
 }
 
 -- Синонимы из Cloak of Darkness. Не знаю почему это не стандарт.
@@ -252,6 +256,12 @@ obj {
 obj {
   -"замок,электронный замок";
   nam = 'room8_lock';
+  before_Burn = function(self, thing)
+    if not (thing ^ 'matches' or thing ^ 'kitchen_lighter' or thing ^ 'kerosin' or thing ^ 'lamp') then
+      return 'Во-первых, '..thing:noun('им')..' ты не подожжёшь. Во-вторых, пожар скорее сожжёт весь дом, чем замок на этой двери.';
+    end
+    return 'Стальной корпус от этого не разогреется, а костёр скорее сожжёт дом, чем отдельный электронный замок. Плохая идея.';
+  end;
   before_Unlock = 'Зубчатый ключ не подходит к электронному замку. Но в двери ты замечаешь замочную скважину. Попробуй отпереть саму дверь.';
   found_in = 'room8_garderob';
   before_Attack = 'Антивандальная защита замка состоит в том, что у него нет отверстий, а стальной корпус нельзя пробить.';
@@ -411,8 +421,12 @@ obj {
     return('Ты находишь свободный крючок и вешаешь '..thing:noun('вн')..' в шкаф.');
   end;
   found_in = 'room8_garderob';
-  description = function()
-    pn 'Старинный платяной шкаф с резными фигурами на дверцах. Плотно забит одеждой.'
+  description = function(self)
+    local dsc = 'Старинный платяной шкаф с резными фигурами на дверцах.';
+    if self:has 'open' and #self.obj > 3 then
+      dsc = dsc .. ' Плотно забит одеждой.';
+    end
+    pn(dsc);
     return false;
   end;
 }: attr 'container,openable,static,scenery';
@@ -561,7 +575,7 @@ clothing {
 }
 
 clothing {
-  -"мини-блузка,мини-блуза,блузка,блуза/жр";
+  -"блузка,мини-блузка,мини-блуза,блуза/жр";
   nam = 'room8_shortblouse';
   part = 'top';
   description = 'Белая мини-блузка. Может быть, даже мини-мини.';
@@ -687,12 +701,36 @@ clothing {
   -"шуба/жр|мутон/мр";
   nam = 'room8_wintercoat';
   part = 'top';
-  paired_hot = 'room8_lightwear';
   level = 4;
   weight = 3;
   mode = 'cold';
-  paired_neutral = 'room8_shirt';
+  paired_hot = 'room8_overcoat';
+  paired_neutral = 'room8_raincoat';
   description = 'Меховая мутоновая шуба. Не совсем подходящая одежда для отапливаемых помещений. У меха какой-то странный зелёный оттенок.';
+}
+
+clothing {
+  -"дождевик/мр";
+  nam = 'room8_raincoat';
+  part = 'top';
+  paired_cold = 'room8_wintercoat';
+  paired_hot = 'room8_overcoat';
+  level = 4;
+  weight = 2;
+  mode = 'neutral';
+  description = 'Яркий синий непромокаемый дождевик.';
+}
+
+clothing {
+  -"накидка/мр";
+  nam = 'room8_overcoat';
+  part = 'top';
+  paired_cold = 'room8_wintercoat';
+  paired_neutral = 'room8_raincoat';
+  level = 4;
+  weight = 0;
+  mode = 'hot';
+  description = 'Лёгкая цветная полупрозрачная накидка.';
 }
 
 clothing {
