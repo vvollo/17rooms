@@ -715,6 +715,7 @@ clothing {
   part = 'top';
   paired_cold = 'room8_wintercoat';
   paired_hot = 'room8_overcoat';
+  found_in = 'room8_clothes';
   level = 4;
   weight = 2;
   mode = 'neutral';
@@ -734,13 +735,24 @@ clothing {
 }
 
 clothing {
+  -"тёплая рубашка/жр";
+  nam = 'room8_warmshirt';
+  part = 'top';
+  level = 2;
+  mode = 'cold';
+  paired_hot = 'room8_lightwear';
+  paired_neutral = 'room8_shirt';
+  description = 'Утеплённая салатовая рубашка с длинными рукавами.';
+}
+
+clothing {
   -"рубашка/жр";
   nam = 'room8_shirt';
   part = 'top';
   level = 2;
   found_in = 'room8_clothes';
   paired_hot = 'room8_lightwear';
-  paired_cold = 'room8_wintercoat';
+  paired_cold = 'room8_warmshirt';
   mode = 'neutral';
   description = 'Женская салатовая рубашка с длинными рукавами.';
 }
@@ -751,7 +763,7 @@ clothing {
   part = 'top';
   level = 2;
   mode = 'hot';
-  paired_cold = 'room8_wintercoat';
+  paired_cold = 'room8_warmshirt';
   paired_neutral = 'room8_shirt';
   description = "Чёрная рубашка с длинными рукавами с большими дырами для вентиляции. Очень большими дырами.";
 }
