@@ -951,7 +951,7 @@ room2_Far {
 -- }
 
 room2_Far {
-	-"пугало|руки,глаза|мяч,уилсон,рот|халат";
+	-"пугало|руки,глаза|мяч,уилсон,рот|старый халат, халат";
 	nam = "room2_scarecrow";
 	description = function (s)
 		local _txt = s:hasnt'seen' and " (Уилсон?!)" or ""
