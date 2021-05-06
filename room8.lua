@@ -5,13 +5,6 @@ global {
   list_clothing = std.list {};
 }
 
-obj {
-  -"зубчатый ключ,ключ";
-  nam = "thooskey";
-  description = "Зубчатый ключ.";
---  found_in = 'room8_garderob';
-}
-
 game : dict {
   ["блузка/рд"] = 'блузки';
   ["блузка/вн"] = 'блузку';
