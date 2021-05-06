@@ -1,6 +1,10 @@
 require "snapshots"
 mp.auto_animate = false
 
+global {
+  list_clothing = std.list {};
+}
+
 obj {
   -"зубчатый ключ,ключ";
   nam = "thooskey";
@@ -25,8 +29,6 @@ game : dict {
   ["легинсы/рд"] = 'легинсов';
   ["леггинсы/вн"] = 'леггинсы';
   ["легинсы/вн"] = 'легинсы';
-  ["чёрный/рд"] = 'чёрного';
-  ["чёрный/вн"] = 'чёрный';
   ["твидовый/рд"] = 'твидового';
   ["твидовый/вн"] = 'твидовый';
 }
@@ -52,7 +54,7 @@ Verb {
 function room8_switch_temperature(temp, forced)
   local oldtemp = _('room8_garderob')._mode
   -- TODO: очень тяжёлый цикл, надо как-то оптимизировать
-  std.for_each_obj(function(v)
+  list_clothing:for_each(function(v)
     if (forced and v:where() ~= nil and v:where().nam == 'room8_control') then
       return
     end
@@ -104,7 +106,7 @@ room {
       snapshots:write('entersroom');
     end
     local description = '';
-    if here().hot() then
+    if s.hot() then
       description = [[Жарко. ]];
     end
     local clothes = ''
@@ -409,7 +411,7 @@ clothing = Class {
 -- Да, ты можешь писать "открыть крючок" потому что это синоним шкафа.
 -- Но то, что крючки не смоделированы, должно намекать на их несущественность.
 obj {
-  -"шкаф,гардероб/мр|крючки/мн|крючок|одежда/жр,но";
+  -"шкаф,гардероб/мр,но|крючки/мн,но|крючок/мр,но|одежда/жр,но";
   nam = 'room8_clothes';
   before_Receive = function(self, thing)
     if not thing:has('clothing') then
@@ -517,7 +519,7 @@ clothing {
 }: attr 'worn,concealed';
 
 clothing {
-  -"штаны/ср,мч";
+  -"штаны/ср,мч,мн";
   nam = 'room8_pants';
   part = 'bottom';
   mode = 'neutral';
@@ -528,7 +530,7 @@ clothing {
 }: attr 'worn';
 
 clothing {
-  -"шорты/ср,мч";
+  -"шорты/ср,мч,мн";
   nam = 'room8_shorts';
   part = 'bottom';
   mode = 'hot';
@@ -539,7 +541,7 @@ clothing {
 }
 
 clothing {
-  -"зимние штаны,штаны,щтаны/ср,мч";
+  -"зимние штаны,штаны,щтаны/ср,мч,мн";
   nam = 'room8_winterpants';
   part = 'bottom';
   mode = 'cold';
@@ -599,7 +601,7 @@ clothing {
 }
 
 clothing {
-  -"твидовый пиджак,пиджак/мр";
+  -"твидовый пиджак,пиджак/мр,но";
   nam = 'room8_winter_formalсoat';
   description = 'Чёрный твидовый пиджак. Очень тёплый.';
   level = 3;
@@ -611,7 +613,7 @@ clothing {
 }
 
 clothing {
-  -"чёрный пиджак,черный пиджак,пиджак/мр";
+  -"чёрный пиджак,черный пиджак,пиджак/мр,но";
   nam = 'room8_formalcoat';
   paired_hot = 'room8_formalvest';
   paired_cold = 'room8_winter_formalсoat';
@@ -735,7 +737,7 @@ clothing {
 }
 
 clothing {
-  -"тёплая рубашка/жр";
+  -"тёплая рубашка/жр,но";
   nam = 'room8_warmshirt';
   part = 'top';
   level = 2;
@@ -758,7 +760,7 @@ clothing {
 }
 
 clothing {
-  -"лёгкая рубашка,рубашка/жр";
+  -"лёгкая рубашка,рубашка/жр,но";
   nam = 'room8_lightwear';
   part = 'top';
   level = 2;
@@ -1024,3 +1026,9 @@ clothing {
   mode = 'cold';
   description = 'Серая спортивная толстовка с длинными рукавами.';
 }
+
+std.for_each_obj(function(v)
+  if (v.check_inventory ~= nil and v.getlevel ~= nil) then
+    list_clothing:add(v)
+  end
+end)
