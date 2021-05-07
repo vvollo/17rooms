@@ -6,7 +6,13 @@ room {
 	nam = "room15_bedroom";
 	book_read = false;
 	title = "Спальня";
-	dsc = "Просторная комната с единственным окном. Выход из комнаты находится на западе. ";
+	dsc = function(s)
+		if pl:where()^'room15_void' then
+			return "Тебя окружает пустота. Через окно ты видишь просторную спальню. ";
+		else
+			return "Просторная комната с единственным окном. Выход из комнаты находится на западе. ";
+		end;
+	end;
 	w_to = 'room14_secondfloor';
 	awake = false;
 	complete = false;
@@ -259,8 +265,10 @@ obj {
 			if _'room15_bedroom'.awake then
 				pr 'За окном ты видишь голубое небо. ';
 			else
-				pr 'За окном ты видишь непроглядную пустоту. ';
-				mp:content(_'room15_void');
+				if not pl:where()^'room15_void' then
+					pr 'За окном ты видишь непроглядную пустоту. ';
+					mp:content(_'room15_void');
+				end;
 			end;
 		else
 			pr 'Окно закрыто плотными занавесками. ';
@@ -320,7 +328,12 @@ obj {
 			pr 'Сначала стоит открыть занавески. ';
 			return;
 		end;
-		mp:xaction('Enter', _'room15_void');
+
+		if pl:where()^'room15_void' then
+			mp:xaction('Exit', _'room15_void');
+		else
+			mp:xaction('Enter', _'room15_void');
+		end;
 	end;
 	before_Receive = function(s)
 		if _'room15_curtain':has('~open') then
@@ -384,7 +397,7 @@ obj {
 }: attr('enterable,supporter,static,luminous');
 
 obj {
-	-"белье|простыня";
+	-"постельное белье,белье на кровати,белье|простыня";
 	nam = 'room15_sheets';
 	description = 'Чистая простыня лежит на кровати. ';
 	before_Take = function(s)
@@ -681,7 +694,7 @@ obj {
 };
 
 obj {
-	-"простыни|обрывки простыней,обрывки простыни,обрывки ткани,обрывки|ткань";
+	-"обрывки простыней,обрывки простыни,обрывки ткани,обрывки|простыни|ткань";
 	nam = 'room15_shreds';
 	description = 'Прочные и длинные полосы из простыней. ';
 	before_Tie = function(s, w)
@@ -833,7 +846,7 @@ obj {
 	["before_Taste,Eat"] = 'Вряд ли это вкусно. ';
 	["before_Rub,Touch"] = function(s)
 		if s:has('on') then
-			pr 'Экран гладкий и приятный на ощупь. Ты чувствуешь легкое покалывание в пальцах от наэлектризованного кинескопа. ';
+			pr 'Экран гладкий приятный и на ощупь. Ты чувствуешь легкое покалывание в пальцах от наэлектризованного кинескопа. ';
 		else
 			pr 'Экран гладкий и приятный на ощупь. ';
 		end;
