@@ -147,14 +147,14 @@ room {
 }
 
 obj {
-  -"вешалка|вешалки/мн";
+  -"вешалка/жр,но|вешалки/мн,жр,но";
 	nam = "room8_hanger";
   found_in = 'room8_clothes';
   description = 'Здесь нет вешалок, одежда висит на крючках.';
 }: attr 'concealed,static';
 
 obj {
-  -"рукоятка,рукоятка рычага/жр,но|монстр/мн,од";
+  -"рукоятка,рукоятка рычага/жр,но|монстр/мн,од|язык/но,мр";
   nam = 'room8_control_end';
   found_in = 'room8_control';
   description = 'Изогнутый декоративный крюк на конце рычага изображает язык милого монстра. За эту рукоятку удобно хвататься.';
@@ -169,7 +169,7 @@ obj {
 }: attr 'concealed,static';
 
 obj {
-	-"рычаг,кондиционер";
+	-"рычаг,кондиционер/мр,но";
 	nam = "room8_control";
   found_in = 'room8_garderob';
 	description = function(self)
@@ -230,7 +230,7 @@ obj {
 }: attr 'static,supporter,scenery';
 
 obj {
-  -"дверь";
+  -"дверь/жр,но";
   nam = 'room8_garagedoor';
   found_in = 'room8_garderob';
   with_key = 'thooskey';
@@ -249,7 +249,7 @@ obj {
 }: attr 'scenery,openable,lockable,locked';
 
 obj {
-  -"замок,электронный замок";
+  -"замок,электронный замок/мр,но";
   nam = 'room8_lock';
   before_Burn = function(self, thing)
     if not (thing ^ 'matches' or thing ^ 'kitchen_lighter' or thing ^ 'kerosin' or thing ^ 'lamp') then
@@ -406,7 +406,7 @@ clothing = Class {
 -- Да, ты можешь писать "открыть крючок" потому что это синоним шкафа.
 -- Но то, что крючки не смоделированы, должно намекать на их несущественность.
 obj {
-  -"шкаф,гардероб/мр,но|крючки/мн,но|крючок/мр,но|одежда/жр,но";
+  -"шкаф,гардероб/мр,но|крючки/мр,мн,но|крючок/мр,но|одежда/жр,но";
   nam = 'room8_clothes';
   before_Receive = function(self, thing)
     if not thing:has('clothing') then
@@ -492,7 +492,7 @@ clothing {
 }: attr 'worn,concealed';
 
 clothing {
-  -"трусы,трусики,труселя/ср,мч|белье,бельё/ср";
+  -"трусы,трусики,труселя/ср,мч,мн|белье,бельё/ср";
   nam = 'room8_underwear_bottom';
   part = 'bottom';
   description = 'Твоё нижнее бельё.';
@@ -503,7 +503,7 @@ clothing {
 }: attr 'worn,concealed';
 
 clothing {
-  -"туфли/жр,мч|туфля/жр";
+  -"туфли/жр,мч,мн|туфля/жр";
   nam = 'room8_shoes';
   part = 'feet';
   description = 'Чёрные блестящие туфли на каблуке.';
@@ -874,8 +874,12 @@ obj {
 obj {
   -"карман/мр,но|карманы/мн,мр,но";
   nam = 'room8_out_pockets';
+  before_Drop = 'Нет, ты же можешь таскать с собой столько вещей!';
+  before_Receive = function(self, thing)
+    mp:xaction('Take', thing)
+  end;
   description = 'Карманы пусты, в них нет ничего интересного.';
-}: attr 'static,concealed';
+}: attr 'concealed,container';
 take('room8_out_pockets');
 
 obj {
