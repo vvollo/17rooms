@@ -1,4 +1,6 @@
 --$Name:17 комнат$
+--$Version: 1.0.1$
+
 require "parser/mp-ru"
 require "fmt"
 require "autotheme"
