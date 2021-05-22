@@ -158,7 +158,9 @@ obj {
   nam = 'room8_control_end';
   found_in = 'room8_control';
   description = 'Изогнутый декоративный крюк на конце рычага изображает язык милого монстра. За эту рукоятку удобно хвататься.';
-  before_Receive = 'Рукоятка это часть рычага. Нужно вешать вещи на рычаг.'
+  before_Receive = function(self, thing)
+    mp:xaction('PutOn', thing, _('room8_control'));
+  end;
 }: attr 'concealed,static,~animate';
 
 obj {
@@ -230,12 +232,20 @@ obj {
 }: attr 'static,supporter,scenery';
 
 obj {
+  -"зубчатый ключ,ключ";
+  nam = "thooskey";
+  description = "Зубчатый ключ.";
+}:attr 'disabled';
+
+obj {
   -"дверь/жр,но";
   nam = 'room8_garagedoor';
   found_in = 'room8_garderob';
   with_key = 'thooskey';
   after_Unlock = function(s)
-    _('thooskey'):disable();
+    if _('thooskey' ~= nil) then
+      _('thooskey'):disable();
+    end
     mp.score=mp.score+1;
     return 'Ключ застревает в замке, но дверь всё-таки открывается.';
   end;
@@ -258,7 +268,8 @@ obj {
     return 'Стальной корпус от этого не разогреется, а костёр скорее сожжёт дом, чем отдельный электронный замок. Плохая идея.';
   end;
   before_Unlock = function(self, thing)
-    return 'Жаль, но электронный замок не открывается '..thing:noun('тв')..'. Хотя в двери ты замечаешь замочную скважину. Попробуй отпереть саму дверь.';
+    pn('Жаль, но электронный замок не открывается '..thing:noun('тв')..', но в двери ты замечаешь замочную скважину.');
+    mp:xaction('Unlock', _('room8_garagedoor'), thing);
   end;
   found_in = 'room8_garderob';
   before_Attack = 'Антивандальная защита замка состоит в том, что у него нет отверстий, а стальной корпус нельзя пробить.';
