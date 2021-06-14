@@ -731,7 +731,7 @@ clothing {
 }
 
 clothing {
-  -"накидка/мр";
+  -"накидка/жр";
   nam = 'room8_overcoat';
   part = 'top';
   paired_cold = 'room8_wintercoat';
