@@ -1,5 +1,5 @@
 --$Name:17 комнат$
---$Version: 1.0.3$
+--$Version: 1.0.4$
 
 require "parser/mp-ru"
 require "fmt"
