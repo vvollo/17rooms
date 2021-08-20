@@ -110,6 +110,10 @@ room {
 			 disable "room13_ниша"
 			 return false
 		  end,
+		  after_Unlock = function(s)
+			 remove "room13_маленький ключик"
+			 return false
+		  end,
 	   }:attr "static,openable,lockable,locked":disable(),
 	   obj {
 			 -"ниша",
