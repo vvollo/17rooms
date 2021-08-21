@@ -925,8 +925,9 @@ obj {
 	end;
 	after_LetGo = function(s, o)
 		if o^'statuetka' and have('statuetka') then
-			if not _'room15_bedroom'.complete then
+			if not _'room15_bedroom'.complete and  not _'statuetka'.score then
 			   mp.score=mp.score+1;
+			   _'statuetka'.score=true;
 			end;
 			_'room15_bedroom'.complete = true;
 			pr('Едва схватив ' .. _'statuetka':noun'вн' .. ', ты ощущаешь, что начинаешь падать. Веревка выскальзывает из твоей руки и ты просыпаешься от сильного удара. Ты лежишь на кровати, крепко сжимая в руке '.. _'statuetka':noun'вн' .. '. ');
