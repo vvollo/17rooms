@@ -83,8 +83,12 @@ obj {
 	default_Event = "Push";
 	nam = "room7_b5";
 	before_Push = function()
-		p "Что-то зажужжало, завибрировало, щелкнуло, механический верблюд неуклюже заковылял к столу, остановился и крышка со звоном отскочила.";
-		_'room7_dish':attr '~concealed';
+		if _'room7_dish':disabled() then
+			p "Что-то зажужжало, завибрировало, щелкнуло, механический верблюд неуклюже заковылял к столу, остановился и крышка со звоном отскочила.";
+			enable("room7_dish");
+		else
+			p "Больше эта кнопка ничего не делает.";
+		end;
 	end;
 }:attr 'concealed,static'
 
@@ -227,7 +231,7 @@ obj {
 	-"поднос";
 	nam = "room7_dish";
 	found_in = 'room7_camel';
-}: attr 'static,supporter,concealed'
+}:disable(): attr 'static,supporter'
 
 obj {
 	-"пол";
