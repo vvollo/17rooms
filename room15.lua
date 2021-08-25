@@ -14,6 +14,7 @@ room {
 		end;
 	end;
 	w_to = 'room14_secondfloor';
+	out_to = 'room14_secondfloor';
 	awake = false;
 	complete = false;
 
@@ -45,6 +46,13 @@ room {
 			end;
 		else
 			pr 'Отсюда не получится. ';
+		end;
+	end;
+	before_Exit = function(s)
+		if not pl:where()^'room15_bedroom' or s.awake then
+			return false;
+		else
+			pr 'За порогом ты не видишь ничего, кроме пустоты. Ты не решаешься сделать шаг. Уж не {$fmt em|спишь} ли ты?';
 		end;
 	end;
 	after_Listen = function(s, w)
@@ -156,6 +164,8 @@ room {
 		else
 			_'room15_lamp':attr('~on,~light');
 		end;
+		_'room15_cabinet':attr('~luminous');
+		_'#room15_at_cabinet':attr('~luminous');
 		_'room15_tv':attr('~on,~luminous');
 		_'room15_rope':attr('~static');
 		_'room15_void':disable();
@@ -335,10 +345,14 @@ obj {
 			return;
 		end;
 
-		if pl:where()^'room15_void' then
-			mp:xaction('Exit', _'room15_void');
+		if not _'room15_bedroom'.awake then
+			if pl:where()^'room15_void' then
+				mp:xaction('Exit', _'room15_void');
+			else
+				mp:xaction('Enter', _'room15_void');
+			end;
 		else
-			mp:xaction('Enter', _'room15_void');
+			pr 'Выпрыгнуть из окна? Нет уж.';
 		end;
 	end;
 	before_Receive = function(s)
@@ -351,7 +365,7 @@ obj {
 }: attr('openable,static,container,luminous');
 
 obj {
-	-"кровать";
+	-"кровать,постель";
 	nam = 'room15_bed';
 	title = 'В кровати';
 	dsc = 'У стены стоит большая кровать. ';
@@ -787,7 +801,7 @@ obj {
 	nam = 'room15_book';
 	description = '"Все и ничто" С. Оминус. Книга очень старая, потрепанная. Переплет украшен позолоченными узорами, местами истершимися от времени -- должно быть очень ценная и редкая. Странно, что тётушка не оставила ее среди других книг, а спрятала здесь. Ты бегло пролистываешь страницы. Какая-то оккультная чушь про пустоту, окружающую наш мир. ';
 	after_Consult = function(s, o)
-		if _'room15_bedroom'.aspleep and (o:find("пусто") or o:find("ничем") or o:find("ничт") or o:find("ничём")) then
+		if not _'room15_bedroom'.awake and (o:find("пусто") or o:find("ничем") or o:find("ничт") or o:find("ничём")) then
 			pr [[
 			В книге подробно описан способ открытия портала в пустоту. Все что для этого необходимо -- любой проем, закрытый прозрачным материалом. После завершения ритуала прозрачный материал можно убрать. Далее на много страниц описывается ритуал открытия портала и способы взаимодействия с пустотой. ]];
 		else
@@ -828,6 +842,8 @@ obj {
 	end;
 	["before_Take,Pull,Push"] = 'Он слишком тяжелый. ';
 	after_SwitchOn = function(s)
+		_'room15_cabinet':attr('luminous');
+		_'#room15_at_cabinet':attr('luminous');
 		s:attr('luminous');
 		if s.awake then
 			pr('Ты включаешь телевизор. ' .. s:vision());
@@ -836,6 +852,8 @@ obj {
 		end;
 	end;
 	after_SwitchOff = function(s)
+		_'room15_cabinet':attr('~luminous');
+		_'#room15_at_cabinet':attr('~luminous');
 		s:attr('~luminous');
 		if s.awake then
 			pr 'Ты выключаешь телевизор. ';
