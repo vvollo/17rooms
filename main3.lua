@@ -1,5 +1,5 @@
 --$Name:17 комнат$
---$Version: 1.0.5$
+--$Version: 1.0.6$
 
 require "parser/mp-ru"
 require "fmt"
@@ -115,7 +115,7 @@ Verb {
 mp.msg.Authors = {}
 function mp:Authors()       
   p( 		"Авторы: Khaelenmore, techniX, Enola, Артур Айвазян, yandexx, Cheshire, gloomy, qwerty, Irremann, Ajenta, Librarian Oak, Zlobot, Антон Ласточкин, blinovvi, "..fmt.st("crem")..[[, spline1986, Oreolek, Антон Артамонов, goraph
-		^^Тестирование: Khaelenmore, techniX, Enola, Артур Айвазян, yandexx, Cheshire, gloomy, qwerty, Irremann, Ajenta, Librarian Oak, Zlobot, Антон Ласточкин, blinovvi, spline1986, Oreolek, Антон Артамонов, goraph, Гога, Yorodzuyi, Алик Гаджимурадов
+		^^Тестирование: Khaelenmore, techniX, Enola, Артур Айвазян, yandexx, Cheshire, gloomy, qwerty, Irremann, Ajenta, Librarian Oak, Zlobot, Антон Ласточкин, blinovvi, spline1986, Oreolek, Антон Артамонов, goraph, Гога, Yorodzuyi, Алик Гаджимурадов, vvollo
 		^^Спасибо Райану Видеру за то что когда-то он придумал Cragne Manor, technix за то что он подбросил нам идею написать коллективный парсер, Петру Косых за метапарсер и практически ежедневную техническую поддержку участников на протяжении всего этого марафона, spline1986 за прекрасную тему игры, форуму ifiction.ru и отдельно Олегусу, а также дискорд чату ifrus, дискорд и телеграмм каналам INSTEAD, и чату Мануций, Inc. за информационную поддержку.]]);
 
 end
