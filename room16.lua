@@ -194,8 +194,11 @@ obj {
 	before_Drop = function()
 		p ('Надо бросать пить, а не крестики бросать.')
 	end;
-	before_Take = function()
+	["before_Take,Remove,Enter"] = function()
 		p ('Что-что?')
+	end;
+	before_Cut = function(s, w)
+		mp:xaction('PutOn', s, w)
 	end;
 	before_PutOn = function(s, w)
 		if (w == _'room16_a1' or w == _'room16_a2' or w == _'room16_a3' or w == _'room16_b1' or w == _'room16_b2' or w == _'room16_b3' or w == _'room16_c1' or w == _'room16_c2' or w == _'room16_c3') then
@@ -239,8 +242,11 @@ obj {
 	before_Drop = function()
 		p ('Надо бросать пить, а не нолики бросать.')
 	end;
-	before_Take = function()
+	["before_Take,Remove,Enter"] = function()
 		p ('Что-что?')
+	end;
+	before_Cut = function(s, w)
+		mp:xaction('PutOn', s, w)
 	end;
 	before_PutOn = function(s, w)
 		if (w == _'room16_a1' or w == _'room16_a2' or w == _'room16_a3' or w == _'room16_b1' or w == _'room16_b2' or w == _'room16_b3' or w == _'room16_c1' or w == _'room16_c2' or w == _'room16_c3') then
