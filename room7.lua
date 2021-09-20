@@ -153,13 +153,13 @@ obj {
 	description = "Кайзерка с маком - муляж изготовленный из папье-маше. Не очень-то и похожа на настоящую.";
 	before_Smell = "Пахнет краской, лаком и растворителем.";
 	before_Tear = function(s)
-		p "Ты разрываешь булочку из папье-маше и обнаруживаешь внутри предмет.";
-		move ('longkey',pl);
-		mp.score=mp.score+1;
-		remove(s);
+		s:tearApart("разрываешь");
 	end;
 	before_Attack = function(s)
-		p "Ты разламываешь булочку из папье-маше и обнаруживаешь внутри предмет.";
+		s:tearApart("разламываешь");
+	end;
+	tearApart = function(s, t)
+		p ("Ты " .. t .. " булочку из папье-маше и обнаруживаешь внутри " .. _'longkey':noun'вн' .. ".");
 		move ('longkey',pl);
 		mp.score=mp.score+1;
 		remove(s);
