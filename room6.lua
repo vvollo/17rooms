@@ -45,7 +45,7 @@ room {
     end;
     before_Yes = "Ты хочешь ответить, но старик не услышит тебя.";
     before_No = "Ты хочешь ответить, но старик не услышит тебя.";
-    obj = {'kitchen_main_table', 'kitchen_grass', 'kitchen_round_table', 'kitchen_basket', 'kitchen_lift', 'kitchen_door_north', 'kitchen_door_west', 'kitchen_button_up', 'kitchen_button_down', 'kitchen_old_man', 'kitchen_window', 'kitchen_forest', 'kitchen_walls', 'kitchen_ceiling', 'kitchen_pec', 'kitchen_cat'};
+    obj = {'kitchen_main_table', 'kitchen_grass', 'kitchen_round_table', 'kitchen_lift', 'kitchen_door_north', 'kitchen_door_west', 'kitchen_button_up', 'kitchen_button_down', 'kitchen_old_man', 'kitchen_window', 'kitchen_forest', 'kitchen_walls', 'kitchen_ceiling', 'kitchen_pec', 'kitchen_cat'};
 }
 
 room {
@@ -245,7 +245,7 @@ obj {
 }:attr 'static,container,openable,closed';
 
 obj {
-    -"буханка чёрного хлеба,буханка|хлеб";
+    -"буханка чёрного хлеба,буханка|чёрный хлеб,хлеб/но";
     nam = "kitchen_bread";
     was_cut = false;
     description = function(s)
@@ -300,6 +300,9 @@ obj {
               mp.score=mp.score+1;
             end
             return true;
+	else
+	    p "Так ты бутерброд не приготовишь.";
+	    return true;
         end;
     end;
     before_Cut = "Кусок хлеба уже отрезан.";
