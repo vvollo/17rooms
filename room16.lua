@@ -86,7 +86,15 @@ room {
 		end;
 		return false
 	end;
-	obj = { 'room16_wardrobe','room16_parquet','room16_bookstand','room16_pedestal','room16_slit' };
+	["before_PutOn,Insert"] = function(s, w, i)
+		if i == _'room16_witch' then
+			-- "положить в/на тетю что-то" вызывает "резать тетю чем-то"
+			mp:xaction('Cut', i, w)
+		else
+			return false
+		end
+	end;
+	obj = { 'room16_wardrobe','room16_parquet','room16_bookstand','room16_pedestal','room16_slit','room16_walls' };
 --	obj = { 'statuetka','book','dagger','room16_wardrobe','room16_parquet','room16_bookstand','room16_pedestal','room16_slit' };
 	--obj = { 'room16_wardrobe','room16_parquet','room16_bookstand','room16_pedestal','room16_slit' };
 }
@@ -1444,7 +1452,6 @@ obj {
 		_'room16_wardrobe':attr 'enterable'
 		move(_'room16_witch',_'room16_mystical')
 		move(_'room16_wall',_'room16_mystical')
-		move(_'room16_walls',_'room16_mystical')
 		DaemonStart 'room16_AI'
 	end;
 	aiturn = function()
@@ -1756,6 +1763,9 @@ obj {
 	before_Answer = function(s)
 		p('Разговаривать с тётей, когда она в таком состоянии, бессмысленно.')
 	end;
+	["before_Take,Remove,Enter,PutOn,Insert"] = function(s, ev, w)
+		p 'Ты серьёзно?'
+	end;
 	obj = {
 		obj {
 			-"глаза,глаз*";
@@ -1788,7 +1798,13 @@ obj {
 	-"стены";
 	nam = 'room16_walls';
 	state = 0;
-	description = 'Стены как стены. Нельзя сказать, что какая-то стена выделяется относительно остальных. Или можно?';
+	description = function(s)
+		if _'room16_mystical'.state == 0 then
+			return 'Стены как стены.';
+		else
+			return 'Стены как стены. Нельзя сказать, что какая-то стена выделяется относительно остальных. Или можно?';
+		end
+	end;
 }:attr 'static, scenery'
 
 obj {

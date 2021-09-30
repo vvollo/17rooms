@@ -253,8 +253,15 @@ obj {
           end;
         end;
         before_Fill = function(s,w)
-          if not have('kerosin') then
+	  if not w and _'kerosin':access() then
+            mp:check_held(_'kerosin');
+	  elseif w then
+            mp:check_held(w);
+	  end;
+          if not w and not have('kerosin') then
             p "Тебе нечем наполнить лампу!";
+          elseif w and not w^'kerosin' then
+            return false;
           else
             _'lamp'.kerosin = 1;
             remove ('kerosin');
@@ -281,7 +288,7 @@ obj {
             p "Зажигалка слишком толстая и не влазит в узкое горло керосиновой лампы.";
           end
         end;
-        before_Rub = "Ты потёрла старую лампу, но ничего не произошло, и никакого джина из неё не вылезла. Попытаться, впрочем, стоило.";
+        before_Rub = "Ты потёрла старую лампу, но ничего не произошло, и никакого джина из неё не вылезло. Попытаться, впрочем, стоило.";
         score=false;
         after_Take = function(s)
           if not s.score then
@@ -291,3 +298,21 @@ obj {
           return false;
         end;
 };
+
+VerbExtend {"#Fill",
+	"в {noun}/вн {noun}/вн : Fill",
+	"~ внутрь {noun}/рд {noun}/вн : Fill",
+	"~ {noun}/вн {noun}/тв : Fill",
+	"~ {noun}/вн в {noun}/вн : Fill reverse",
+	"~ {noun}/вн внутрь {noun}/рд : Fill reverse",
+	"~ {noun}/тв {noun}/вн : Fill reverse"
+}
+
+function mp:after_Fill(w,wh)
+	if wh then
+		mp:message 'Fill.FILL2'
+	else
+		mp:message 'Fill.FILL'
+	end
+end
+mp.msg.Fill.FILL2 = "Наполнять {#first/вн} {#second/тв} бессмысленно."
