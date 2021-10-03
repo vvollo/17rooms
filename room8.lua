@@ -44,7 +44,7 @@ Verb {
 -- Все описания можно менять
 -- Задача: Игрок должен получить доступ на запад с помощью предмета thooskey. Изначально он должен быть закрыт. Игрок может придти в комнату как с этим предметом, так и без него
 
-function room8_switch_temperature(temp, forced)
+function room8_switch_temperature(temp, forced, showmsg)
   local oldtemp = _('room8_garderob')._mode
   -- TODO: очень тяжёлый цикл, надо как-то оптимизировать
   list_clothing:for_each(function(v)
@@ -80,6 +80,9 @@ function room8_switch_temperature(temp, forced)
     end
   end)
   _('room8_garderob')._mode = temp
+  if not showmsg then
+    return
+  end
   if temp == 'cold' then
     return 'В комнате становится холодно. Мороз захватывает вещи и выворачивает их. Твоя одежда покрывается мехом. Гардероб готов к зиме.'
   end
@@ -90,6 +93,77 @@ function room8_switch_temperature(temp, forced)
     return 'Комната возвращается в свою скучную неопределённо тёплую атмосферу.'
   end
 end
+
+local function room8_drop_items()
+	local need_lever = (here()._mode ~= 'neutral');
+	if need_lever then
+		room8_switch_temperature('neutral', false, false);
+	end;
+  local need_take_clothing = false;
+  local need_wear_clothing = false;
+	local need_cloth = false;
+
+  list_clothing:for_each(function(v)
+    -- собрать свои вещи
+    if (v.own_clothes and not have(v)) then
+      need_take_clothing = true
+      take(v)
+    end
+
+	  -- надеть свои вещи
+    if (v.own_clothes and v:has('~worn')) then
+      need_wear_clothing = true
+      v:attr('worn');
+    end
+
+    -- снять чужие вещи
+    if (not v.own_clothes and v:has('worn')) then
+			v:attr('~worn');
+    end
+
+	  -- повесить остальные в шкаф
+    if (v:where() ~= nil and not v.own_clothes and v:where().nam ~= 'room8_clothes' and v.mode == 'neutral') then
+			move(v, 'room8_clothes');
+			need_cloth = true;
+    end
+  end)
+	if need_lever or need_cloth or need_wear_clothing or need_take_clothing then
+		p 'Ты ';
+    local txt = ''
+    if need_take_clothing then
+      txt = 'собираешь свои вещи'
+      if need_wear_clothing then
+        if need_cloth or need_lever then
+          txt = txt .. ', '
+        else
+          txt = txt .. ' и '
+        end
+        txt = txt .. 'надеваешь их'
+      end
+    elseif need_wear_clothing then
+      txt = 'надеваешь свои вещи'
+    end
+		if need_cloth then
+      if (txt ~= '') then
+        if (need_lever) then
+          txt = txt .. ', '
+        else
+          txt = txt .. ' и '
+        end
+      end
+			txt = txt .. 'аккуратно вешаешь одежду обратно в шкаф'
+		end;
+    if need_lever then
+      if (txt ~= '') then
+        txt = txt .. ' и '
+      end
+      txt = txt .. 'возвращаешь рычаг в среднее положение.'
+    else
+      txt = txt .. '.'
+    end;
+    pn(txt)
+	end;
+end;
 
 room {
 	nam = "room8_garderob";
@@ -118,9 +192,13 @@ room {
       p 'Дверь закрыта на электронный замок.';
       return;
     end;
+    room8_drop_items();
     return 'room9_garazh';
   end;
-	w_to = 'room3_hall';
+	w_to = function()
+    room8_drop_items();
+    return 'room3_hall';
+  end;
   _mode = 'neutral';
   hot = function()
     return here()._mode == 'hot'
@@ -132,7 +210,7 @@ room {
     if (temp ~= 'hot' and temp ~= 'cold' and temp ~= 'neutral') then
       return
     end
-    return room8_switch_temperature(temp, false)
+    return room8_switch_temperature(temp, false, true)
   end;
 	before_Listen = function(s)
     if s.cold() then
@@ -204,7 +282,11 @@ obj {
       return ('Рычаг скрипит, но выдерживает вес '..thing:noun('рд')..'.');
     end
     if weight > 2 then
-      return 'Рычаг со скрипом падает под тяжестью одежды в нижнее положение. '..room8_switch_temperature('hot', true)
+      if here().hot() then
+        return 'Рычаг громко скрипит под тяжестью одежды.';
+      else
+        return 'Рычаг со скрипом падает под тяжестью одежды в нижнее положение. '..room8_switch_temperature('hot', true, true)
+      end
     end
   end;
   before_Pull = function(self)
@@ -284,13 +366,11 @@ obj {
   capacity = 1;
   after_Receive = function(self, thing)
     local is_boiling = here().hot() and thing.mode == 'cold';
-    if is_boiling then
+    if is_boiling and not self:has('broken') then
       pn ('Из-под '..thing:noun('рд')..' доносится резкий писк, затем что-то начинает шипеть и ты видишь струйку дыма. Дверь распахивается настежь.');
       _('room8_garagedoor'):attr('open');
       _('room8_garagedoor'):attr('~locked');
-      if not self:has('broken') then
-        mp.score=mp.score+1;
-      end;
+      mp.score=mp.score+1;
       self:attr('broken')
       return true;
     end;
@@ -496,6 +576,7 @@ clothing {
   nam = 'room8_underwear_top';
   description = 'Твоё нижнее бельё.';
   part = 'top';
+  own_clothes = true;
   before_Disrobe = function()
     return 'Да ни за что.';
   end;
@@ -507,6 +588,7 @@ clothing {
   nam = 'room8_underwear_bottom';
   part = 'bottom';
   description = 'Твоё нижнее бельё.';
+  own_clothes = true;
   before_Disrobe = function()
     return 'Да ни за что.';
   end;
@@ -518,6 +600,7 @@ clothing {
   nam = 'room8_shoes';
   part = 'feet';
   description = 'Чёрные блестящие туфли на каблуке.';
+  own_clothes = true;
   before_Disrobe = function()
     return 'Да ни за что.';
   end;
@@ -525,11 +608,12 @@ clothing {
 }: attr 'worn,concealed';
 
 clothing {
-  -"штаны/ср,мч,мн";
+  -"деловые штаны/ср,мч,мн";
   nam = 'room8_pants';
+  own_clothes = true;
   part = 'bottom';
   mode = 'neutral';
-  description = 'Чёрные формальные штаны.';
+  description = 'Чёрные деловые штаны.';
   paired_hot = 'room8_shorts';
   paired_cold = 'room8_winterpants';
   level = 1;
@@ -547,7 +631,7 @@ clothing {
 }
 
 clothing {
-  -"зимние штаны,штаны,щтаны/ср,мч,мн";
+  -"зимние штаны/ср,мч,мн";
   nam = 'room8_winterpants';
   part = 'bottom';
   mode = 'cold';
@@ -564,6 +648,7 @@ clothing {
   part = 'top';
   description = 'Белая блузка с принтом картины Малевича на груди.';
   mode = 'neutral';
+  own_clothes = true;
   level = 2;
   weight = 1;
   paired_cold = 'room8_winterblouse';
@@ -624,6 +709,7 @@ clothing {
   paired_hot = 'room8_formalvest';
   paired_cold = 'room8_winter_formalсoat';
   description = 'Чёрный женский пиджак. Выглядит очень профессионально.';
+  own_clothes = true;
   level = 3;
   weight = 2;
   part = 'top';
