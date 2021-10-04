@@ -39,20 +39,13 @@ room {
 	["after_Push,Pull,Turn"] = 'Это так не работает. ';
 	before_Walk = function(s, w)
 		if pl:where()^'room15_bedroom' then
-			if not w^'@w_to' or s.awake then
+			if (not w^'@w_to' and not w^'@out_to') or s.awake then
 				return false;
 			else
 				pr 'За порогом ты не видишь ничего, кроме пустоты. Ты не решаешься сделать шаг. Уж не {$fmt em|спишь} ли ты?';
 			end;
 		else
 			pr 'Отсюда не получится. ';
-		end;
-	end;
-	before_Exit = function(s)
-		if not pl:where()^'room15_bedroom' or s.awake then
-			return false;
-		else
-			pr 'За порогом ты не видишь ничего, кроме пустоты. Ты не решаешься сделать шаг. Уж не {$fmt em|спишь} ли ты?';
 		end;
 	end;
 	after_Listen = function(s, w)
@@ -367,7 +360,7 @@ obj {
 obj {
 	-"кровать,постель";
 	nam = 'room15_bed';
-	title = 'В кровати';
+	title = 'в кровати';
 	dsc = 'У стены стоит большая кровать. ';
 	description = function(s)
 		pr 'Большая кровать, застеленная покрывалом. ';
@@ -726,7 +719,7 @@ obj {
 };
 
 obj {
-	-"обрывки простыни,обрывки ткани,обрывки|простыня|ткань";
+	-"обрывки простыни,обрывки ткани,обрывки|простыня,простынь|ткань";
 	nam = 'room15_shreds';
 	description = 'Прочные и длинные полосы из простыней. ';
 	before_Tie = function(s, w)
@@ -918,7 +911,7 @@ obj {
 obj {
 	-"пустота,тьма,темнота|ничто,ничто за окном|ничего,ничего за окном";
 	nam = 'room15_void';
-	title = 'В пустоте';
+	title = 'в пустоте';
 	before_Enter = function(s)
 		if _'room15_window':has('~open') then
 			pr 'Ты не можешь пройти через закрытое окно. ';
