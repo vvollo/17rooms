@@ -1763,7 +1763,7 @@ obj {
 	before_Answer = function(s)
 		p('Разговаривать с тётей, когда она в таком состоянии, бессмысленно.')
 	end;
-	["before_Take,Remove,Enter,PutOn,Insert"] = function(s, ev, w)
+	["before_Take,Remove,Enter,PutOn,Insert"] = function(s,w)
 		p 'Ты серьёзно?'
 	end;
 	obj = {
