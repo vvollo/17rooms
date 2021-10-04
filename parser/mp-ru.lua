@@ -67,7 +67,40 @@ function mp:skip_filter(w)
 	return true
 end
 
-_'@compass'.before_Default = 'Попробуйте глагол "идти".'
+local function endswith(w, t)
+	return not not w:find(t..'$')
+end
+
+function mp:verb_filter(w)
+	if #w > 1 then
+		return true
+	end
+	local utf = mp.utf
+	local verb = w[1]
+	local t = utf.chars(w[1])
+	if endswith(verb, 'ся') or endswith(verb, 'сь') or endswith(verb, 'те') then
+		local len = #verb
+		len = len - utf.bb(verb, len)
+		len = len - utf.bb(verb, len)
+		verb = verb:sub(1, len)
+	end
+	if endswith(verb, 'и') or endswith(verb, 'ь') then
+		return true
+	end
+	local t = utf.chars(verb)
+	local a = { ['а'] = true, ['е'] = true, ['и'] = true,
+		['о'] = true, ['у'] = true, ['ы'] = true,
+		['ю'] = true, ['я'] = true };
+	local len = #t
+	if len >= 2 and a[t[len - 1]] and t[len] == 'й' then -- or a[t[len]] then
+		return true
+	end
+	return false
+end
+
+_'@compass'.before_Default = function()
+	p('"{#First}" это направление. {#Firstit/вн} нельзя ', mp.parsed[1], ".")
+end
 
 function mp.msg.SCORE(d)
 	if d > 0 then
@@ -77,8 +110,16 @@ function mp.msg.SCORE(d)
 	end
 end
 mp.door.word = -"дверь";
-mp.msg.TITLE_SCORE = "Счёт: "
-mp.msg.TITLE_TURNS = "Ходы: "
+mp.msg.TITLE_SCORE = function()
+	if mp.maxscore then
+		pr ("Счёт: ", mp.score, "/", mp.maxscore)
+	else
+		pr ("Счёт: ", mp.score)
+	end
+end
+mp.msg.TITLE_TURNS = function()
+	pr ("Ходы: ", game:time() - 1)
+end
 mp.msg.YES = "Да"
 mp.msg.WHEN_DARK = "Кромешная тьма."
 mp.msg.UNKNOWN_THEDARK = "Возможно, это потому что в темноте ничего не видно?"
@@ -86,6 +127,9 @@ mp.msg.COMPASS_NOWAY = "Этот путь недоступен."
 mp.msg.COMPASS_EXAM_NO = "В этом направлении не видно ничего примечательного."
 mp.msg.ENUM = "шт."
 mp.msg.CUTSCENE_HELP = "Для продолжения нажмите <ввод> или введите {$fmt em|дальше}."
+if instead.reinstead then
+	mp.msg.CUTSCENE_MORE = "^{$fmt em|(дальше)}"
+end
 mp.msg.DLG_HELP = "Для выбора фразы введите цифру."
 mp.msg.NO_ALL = "Это действие нельзя применить на всё."
 mp.msg.DROPPING_ALL = function(w)
@@ -130,11 +174,25 @@ end
 
 mp.msg.enter = "<ввод>"
 mp.msg.EMPTY = 'Простите?'
-mp.msg.UNKNOWN_VERB = "Непонятный глагол"
-mp.msg.UNKNOWN_VERB_HINT = "Возможно, вы имели в виду"
+mp.msg.UNKNOWN_VERB = function(w)
+	p ("Непонятный глагол ", iface:em(w), ".")
+end
+mp.msg.UNKNOWN_VERB_HINT = function(w)
+	p ("Самое похожее слово: ", iface:em(w), ".")
+end
 mp.msg.INCOMPLETE = "Нужно дополнить предложение."
-mp.msg.INCOMPLETE_NOUN = "К чему вы хотите применить команду"
-mp.msg.INCOMPLETE_SECOND_NOUN = "Уточните команду:"
+mp.msg.INCOMPLETE_NOUN = function(w)
+	if w then
+		p('К чему вы хотите применить команду "',w, '"?')
+	else
+		p"К чему вы хотите применить команду?"
+	end
+end
+
+mp.msg.INCOMPLETE_SECOND_NOUN = function(w)
+	p ('Уточните команду: "',w,'"?')
+end
+
 mp.msg.UNKNOWN_OBJ = function(w)
 	if not w then
 		p "Об этом предмете ничего не известно."
@@ -152,10 +210,9 @@ mp.msg.UNKNOWN_WORD = function(w)
 		p ("(",w,"?).")
 	end
 end
-mp.msg.HINT_WORDS = "Может быть"
-mp.msg.HINT_OR = "или"
-mp.msg.HINT_AND = "и"
+mp.msg.HINT_WORDS = "Возможно"
 mp.msg.AND = "и"
+mp.msg.OR = "или"
 mp.msg.MULTIPLE = "Тут есть"
 mp.msg.LIVE_ACTION = function(w)
 	p (w:It'дт'," это не понравится.")
@@ -166,16 +223,28 @@ mp.msg.NOTINV = function(t)
 	p (lang.cap(t:noun'вн') .. " сначала нужно взять.")
 end
 --"надет"
-mp.msg.WORN = function(w)
+mp.msg.HAS_WORN = function(w)
 	local hint = w:gram().hint
-	pr (" (",mp.mrd:word('надет/' .. hint), ")")
+	return mp.mrd:word('надет/' .. hint)
 end
 --"открыт"
-mp.msg.OPEN = function(w)
+mp.msg.HAS_OPEN = function(w)
 	local hint = w:gram().hint
-	pr (" (",mp.mrd:word('открыт/' .. hint), ")")
+	return mp.mrd:word('открыт/' .. hint)
 end
-mp.msg.EXITBEFORE = "Возможно, {#me/дт} нужно сначала {#if_has/#where,supporter,слезть с {#where/рд}.,покинуть {#where/вн}.}"
+--"включён"
+mp.msg.HAS_ON = function(w)
+	local hint = w:gram().hint
+	return mp.mrd:word('включён/' .. hint)
+end
+--"светится"
+mp.msg.HAS_LIGHT = function(w)
+	local hint = w:gram().hint
+	return mp.mrd:word('светится/' .. hint)
+end
+
+mp.msg.EXITBEFORE = "Возможно, {#me/дт} нужно сначала "..
+	"{#if_has/#where,supporter,слезть с {#where/рд}.,покинуть {#where/вн}.}"
 
 mp.default_Event = "Exam"
 mp.default_Verb = "осмотреть"
@@ -186,7 +255,6 @@ mp.msg.ACCESS2 = "{#Second} отсюда не{#word/доступен,#second}."
 
 mp.msg.Look.HEREIS = "Здесь находится"
 mp.msg.Look.HEREARE = "Здесь находятся"
-
 mp.msg.NOROOM = function(w)
 	if w == std.me() then
 		p ("У {#me/рд} слишком много вещей.")
@@ -199,11 +267,47 @@ end
 --"включён"
 --"выключен"
 mp.msg.Exam.SWITCHSTATE = "{#First} сейчас {#if_has/#first,on,{#word/включён,#first},{#word/выключен,#first}}."
-mp.msg.Exam.NOTHING = "ничего нет."
-mp.msg.Exam.IS = "находится"
-mp.msg.Exam.ARE = "находятся"
-mp.msg.Exam.IN = "В {#first/пр,2}"
-mp.msg.Exam.ON = "На {#first/пр,2}"
+
+mp.msg.Exam.NOTHING = function(w)
+	if w:has 'supporter' then
+		mp:pnoun (w, "На {#first/пр,2}")
+	else
+		mp:pnoun (w, "В {#first/пр,2}")
+	end
+	p "ничего нет."
+end
+
+mp.msg.Exam.CONTENT = function(w, oo)
+	local single = #oo == 1 and not oo[1]:hint 'plural'
+	if std.me():where() == w or std.here() == w then
+if false then
+		if single then
+			p "Здесь находится"
+		else
+			p "Здесь находятся"
+		end
+		mp:multidsc(oo)
+else
+		p "{#Me} {#word/видеть,#me,нст} здесь";
+		mp:multidsc(oo, 'вн')
+end
+		p "."
+		return
+	end
+	if w:has 'supporter' then
+		mp:pnoun (w, "На {#first/пр,2}")
+	else
+		mp:pnoun (w, "В {#first/пр,2}")
+	end
+	if single then
+		p "находится"
+	else
+		p "находятся"
+	end
+	mp:multidsc(oo)
+	p "."
+end
+
 --"видеть"
 mp.msg.Exam.DEFAULT = "{#Me} не {#word/видеть,#me,нст} {#vo/{#first/пр}} ничего необычного.";
 mp.msg.Exam.SELF = "{#Me} не {#word/видеть,#me,нст} в себе ничего необычного.";
@@ -240,7 +344,8 @@ mp.msg.Exit.CLOSED = "Но {#first} {#word/закрыт,#first}."
 
 --"покидать"
 --"слезать"
-mp.msg.Exit.EXITED = "{#Me} {#if_has/#first,supporter,{#word/слезать с,#me,нст} {#first/рд},{#word/покидать,#me,нст} {#first/вн}}."
+mp.msg.Exit.EXITED = "{#Me} {#if_has/#first,supporter,{#word/слезать,#me,нст} {#so/{#first/рд}},"..
+	"{#word/покидать,#me,нст} {#first/вн}}."
 
 mp.msg.GetOff.NOWHERE = "Но {#me/дт} не с чего слезать."
 
@@ -295,7 +400,10 @@ mp.msg.Take.WORN = "{#First} {#word/надет,#first} на {#firstwhere/вн}."
 mp.msg.Take.PARTOF = "{#First} {#if_hint/#first,plural,являются,является} частью {#firstwhere/рд}."
 
 mp.msg.Remove.WHERE = "{#First} не {#word/находиться,#first,нст} {#if_has/#second,supporter,на,в} {#second/пр,2}."
-mp.msg.Remove.REMOVE = "{#First} {#if_has/#second,supporter,{#word/поднят с,#first},{#word/извлечён из,#first}} {#second/рд}."
+--"поднят"
+--"извлечён"
+mp.msg.Remove.REMOVE = "{#First} {#if_has/#second,supporter,{#word/поднят с,#first},"..
+	"{#word/извлечён из,#first}} {#second/рд}."
 
 mp.msg.Drop.SELF = "У {#me/рд} не хватит ловкости."
 mp.msg.Drop.WORN = "{#First/вн} сначала нужно снять."
@@ -480,13 +588,13 @@ end
 
 function mp:myself(_, hint)
 	local ww = dict({
-			["вн"] = "себя";
-			["дт"] = "себе";
-			["тв"] = "собой";
-			["пр"] = "себе";
-			["рд"] = "себя";
+			["вн"] = { "себя" };
+			["дт"] = { "себе" };
+			["тв"] = {"собой" };
+			["пр"] = { "себе" };
+			["рд"] = { "себя" };
 		 }, hint)
-	return { ww }
+	return ww
 end
 
 function mp:it(w, hint)
@@ -560,27 +668,65 @@ function mp:err_noun(noun)
 end
 
 function mp.shortcut.vo(hint)
+	local w = std.split(mp.mrd.lang.norm(hint))
+	local utf = mp.utf
+	local vow = lang.is_vowel
+	local char = utf.char
+	local excl = {
+		["льве"] = true,
+		["львах"] = true,
+		["льду"] = true,
+		["льдах"] = true,
+		["льне"] = true,
+		["льнах"] = true,
+		["лбу"] = true,
+		["лбах"] = true,
+		["лжи"] = true,
+		["лжах"] = true,
+		["мху"] = true,
+		["мхах"] = true,
+		["рву"] = true,
+		["рвах"] = true,
+		["ржи"] = true,
+		["ржах"] = true,
+		["рту"] = true,
+		["ртах"] = true,
+		["мне"] = true,
+		["что"] = true,
+	}
+	w = w[#w]
+	if mp.utf.len(w) > 2 and
+		(vow(char(w, 1) == 'в' or vow(char(w, 1) == 'ф') and
+		not vow(char(w, 2)))) or excl[w] then
+		return "во ".. hint
+	end
 	return "в ".. hint
---	local w = std.split(hint)
---	w = w[#w]
---	if mp.utf.len(w) > 2 and
---		(lang.is_vowel(utf.char(w, 1)) or
---		lang.is_vowel(utf.char(w, 2))) then
---		return "в ".. hint
---	end
---	return "во ".. hint
 end
 
 function mp.shortcut.so(hint)
+	local so = {
+		["с"] = true,
+		["з"] = true,
+		["ш"] = true,
+		["ж"] = true,
+		["л"] = true,
+		["р"] = true,
+		["м"] = true,
+	}
+
+	local w = std.split(mp.mrd.lang.norm(hint))
+	local utf = mp.utf
+	w = w[#w]
+	if utf.len(w) > 2 and
+		((so[utf.char(w, 1)] and
+		not lang.is_vowel(utf.char(w, 2))) or utf.char(w, 1) == 'щ') then
+		return "со ".. hint
+	end
+	if utf.len(w) > 2 and utf.char(w, 1) == 'л' and utf.char(w, 2) == 'ь' and
+		not lang.is_vowel(utf.char(w, 2)) then
+		return "со ".. hint
+	end
 	return "с ".. hint
---	local w = std.split(hint)
---	w = w[#w]
---	if mp.utf.len(w) > 2 and
---		(lang.is_vowel(utf.char(w, 1)) or
---		lang.is_vowel(utf.char(w, 2))) then
---		return "с ".. hint
---	end
---	return "со ".. hint
 end
 
 function mp:before_Enter(w)
@@ -591,7 +737,8 @@ function mp:before_Enter(w)
 	return false
 end
 
-mp.msg.HELP = [[{$fmt b|КАК ИГРАТЬ?}^^
+mp.msg.HELP = function()
+	p [[{$fmt b|КАК ИГРАТЬ?}^^
 
 Вводите ваши действия в виде простых предложений вида: глагол -- существительное. Например:^
 > открыть дверь^
@@ -607,14 +754,27 @@ mp.msg.HELP = [[{$fmt b|КАК ИГРАТЬ?}^^
 ^
 Чтобы узнать какие предметы у вас с собой, наберите "инвентарь" или "инв".^
 ^
-Для перемещений используйте стороны света, например: "идти на север" или "север" или просто "с".^
-Кроме сторон света можно перемещаться вверх ("вверх" или "вв") и вниз ("вниз" или "вн").
-^^
-Вы можете воспользоваться клавишей "TAB" для автодополнения ввода.
-]]
+Для перемещений используйте стороны света, например: "идти на север" или "север" или просто "с". Кроме сторон света можно перемещаться вверх ("вверх" или "вв") и вниз ("вниз" или "вн"), "внутрь" и "наружу".]]
+	if not instead.tiny then
+		p [[^^Вы можете воспользоваться клавишей "TAB" для автодополнения ввода.]]
+	else
+		p [[^^Вы можете сокращать названия объектов.]]
+		p [[^^Чтобы сохранять и загружать игру используйте "сохранить" и "загрузить".]]
+		if instead.tiny then
+			p [[Например, "сохранить 1".]]
+		end
+		p [[Начать заново: "заново".]]
+		if instead.reinstead then
+			p [[^^Также доступны команды: !restart, !quit, !info, !save, !load и !font <размер>.]]
+		end
+	end
+end
 
 function mp.token.compass1(_)
-	return "{noun_obj}/@n_to,compass|{noun_obj}/@ne_to,compass|{noun_obj}/@e_to,compass|{noun_obj}/@se_to,compass|{noun_obj}/@s_to,compass|{noun_obj}/@sw_to,compass|{noun_obj}/@w_to,compass|{noun_obj}/@nw_to,compass"
+	return "{noun_obj}/@n_to,compass|{noun_obj}/@ne_to,compass|"..
+		"{noun_obj}/@e_to,compass|{noun_obj}/@se_to,compass|"..
+		"{noun_obj}/@s_to,compass|{noun_obj}/@sw_to,compass|"..
+		"{noun_obj}/@w_to,compass|{noun_obj}/@nw_to,compass"
 end
 
 function mp.token.compass2(_)
@@ -659,8 +819,8 @@ Verb { "#Exam",
 	"~ в|во|на {noun}/пр,2 : Search",
 	"~ внутри {noun}/рд : Search",
 	"~ в|во {noun}/вн : Search",
-	"~ в|во {noun}/пр,2 о|об|обо|про * : Consult",
-	"~ о|об|обо|про * в|во {noun}/пр,2 : Consult reverse",
+	"~ в|во {noun}/пр,2 ?о|?об|?обо|?про * : Consult",
+	"~ ?о|?об|?обо|?про * в|во {noun}/пр,2 : Consult reverse",
 }
 
 Verb { "#Search",
@@ -668,8 +828,8 @@ Verb { "#Search",
 	"{noun}/вн : Search",
 	"в|во|на {noun}/пр,2 : Search",
 	"под {noun}/тв : LookUnder",
-	"~ в|во {noun}/пр,2 * : Consult",
-	"~ * в|во {noun}/пр,2 : Consult reverse",
+	"~ в|во {noun}/пр,2 ?о|?об|?обо|?про * : Consult",
+	"~ ?о|?об|?обо|?про * в|во {noun}/пр,2 : Consult reverse",
 }
 
 Verb { "#Open",
@@ -721,7 +881,7 @@ Verb { "#Take",
 }
 
 Verb { "#Insert",
-	"воткн/уть,втык/ать,вставить,влож/ить",
+	"воткн/уть,втык/ать,вставить,влож/ить,"..
 	"[|про|за]сун/уть,вставь/",
 	"{noun}/вн,held в|во {noun}/вн,inside : Insert",
 	"~ {noun}/вн,held внутрь {noun}/рд : Insert",
@@ -742,7 +902,7 @@ Verb { "#Drop",
 
 Verb {
 	"#ThrowAt",
-	"брос/ить,выбро/сить,кин/уть,кида/ть,швыр/нуть,метн/уть,метать",
+	"брос/ить,выбро/сить,кину/ть,кинь/,кида/ть,швыр/нуть,метн/уть,метать",
 	"{noun}/вн,held : Drop",
 	"{noun}/вн,held в|во|на {noun}/вн : ThrowAt",
 	"~ в|во|на {noun}/вн {noun}/вн : ThrowAt reverse",
@@ -1098,6 +1258,26 @@ Verb {
 }
 
 if DEBUG then
+
+function mp:MetaForm(w)
+	if not w then return end
+	local t, hint
+	w = w:gsub("_", "/")
+	if w:find "/" then
+		hint = true
+	end
+	for _, f in ipairs { "им", "рд", "дт", "вн", "тв", "пр", "пр,2" } do
+		local ww = w
+		if hint then
+			ww = ww .. ','.. f
+		else
+			ww = ww .. '/' .. f
+		end
+		t = self.mrd:word(ww)
+		pn(t, " (", f, ")")
+	end
+end
+
 	MetaVerb {
 		"#MetaWord",
 		"~_слово",
@@ -1119,6 +1299,11 @@ if DEBUG then
 		"~_дамп",
 		"MetaDump"
 	}
+	MetaVerb {
+		"#МетаForm",
+		"~_форм/ы",
+		"* :MetaForm"
+	}
 end
 MetaVerb {
 	"#MetaTranscript",
@@ -1133,6 +1318,8 @@ MetaVerb {
 	"~парсер",
 	"эксперт да : MetaExpertOn",
 	"эксперт нет : MetaExpertOff",
+	"глаголы : MetaVerbs",
+	"версия : MetaVersion",
 }
 
 MetaVerb {
@@ -1173,8 +1360,14 @@ std.mod_start(function()
 		mp.msg.MetaUndo.EMPTY = "Отменять нечего."
 		MetaVerb {
 			"#MetaUndo",
-			"~отмен/ить",
+			"~отмен/а",
 			"MetaUndo",
+		}
+	end
+	if mp.score then
+		MetaVerb {
+			"~ счёт",
+			"MetaScore",
 		}
 	end
 end)

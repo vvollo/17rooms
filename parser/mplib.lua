@@ -2,7 +2,9 @@
 --luacheck: no self
 
 local tostring = std.tostr
-
+local table = std.table
+local type = type
+local string = string
 --- Error handler
 -- @param err error code
 function mp:err(err)
@@ -25,15 +27,14 @@ function mp:err(err)
 				local fixed = verb.verb[verb.word_nr]
 				if verb.verb_nr == 1 then
 					hint = true
-					p (mp:mesg 'UNKNOWN_VERB', " ", iface:em(self.words[verb.verb_nr]), ".")
-					p (mp:mesg 'UNKNOWN_VERB_HINT', " ", iface:em(fixed.word .. (fixed.morph or "")), "?")
+					mp:message('UNKNOWN_VERB', self.words[verb.verb_nr])
+					mp:message('UNKNOWN_VERB_HINT', fixed.word .. (fixed.morph or ""))
 					break
 				end
 			end
 		end
 		if not hint then
-			p (mp:mesg('UNKNOWN_VERB') or "Unknown verb:",
-			   " ", iface:em(self.words[1]), ".")
+			mp:message('UNKNOWN_VERB', self.words[1])
 		end
 	elseif err == "EMPTY_INPUT" then
 		p (mp:mesg('EMPTY') or "Empty input.")
@@ -47,10 +48,10 @@ function mp:err(err)
 					verb = verb .. vv .. ' '
 				end
 				verb = verb:gsub(" $", "")
+				for _, vv in ipairs(self.hints.match) do
+					verb = verb .. ' '.. vv
+				end
 				for _, vv in pairs(self.hints.match.args) do
-					if vv.word then
-						verb = verb .. ' '.. vv.word
-					end
 					if vv.ob then
 						second_noun = true
 					end
@@ -96,33 +97,38 @@ function mp:err(err)
 		else
 			if need_noun then
 				if second_noun then
-					p (mp:mesg('INCOMPLETE_SECOND_NOUN') or mp:mesg('INCOMPLETE_NOUN'),
-						" \"", second_noun, " ", mp:err_noun(need_noun), "\"?")
-				elseif parsed then
-					p (mp:mesg('INCOMPLETE_NOUN'), " \"", parsed, "\"?")
+					mp:message('INCOMPLETE_SECOND_NOUN', second_noun .." " ..mp:err_noun(need_noun))
 				else
-					p (mp:mesg('INCOMPLETE_NOUN'), "?")
+					mp:message('INCOMPLETE_NOUN', parsed)
 				end
 			else
 				mp:message 'INCOMPLETE'
 			end
 		end
-		if not mp.errhints then
+		if not mp.errhints or need_noun then
 			return
 		end
 		local words = {}
 		local dups = {}
 		for _, v in ipairs(self.hints) do
-			if v:find("^~?{noun}") or v == '*' then
+			if v:find("^~?{noun}") or v == '*' or v == '~*' then
+				if v:sub(1,1) == '~' then v = v:sub(2) end
 				v = mp:err_noun(v)
-				if not dups[v] and not need_noun then
+				if not dups[v] then
 					table.insert(words, v)
 					dups[v] = true
 				end
 			else
 				local pat = self:pattern(v)
+				local empty = true
 				for _, vv in ipairs(pat) do
-					if not vv.hidden and not dups[vv.word] then
+					if not vv.hidden then
+						empty = false
+						break
+					end
+				end
+				for _, vv in ipairs(pat) do
+					if (empty or not vv.hidden) and not dups[vv.word] then
 						table.insert(words, vv.word)
 						dups[vv.word] = true
 					end
@@ -139,14 +145,14 @@ function mp:err(err)
 				end
 				p (mp:mesg 'HINT_WORDS', ", ", parsed or '')
 			else
-				p (mp:mesg 'HINT_WORDS', " ")
+				p (mp:mesg 'HINT_WORDS', ", ")
 			end
 		end
 
 		for k, v in ipairs(words) do
 			if k ~= 1 then
 				if k == #words then
-					pr (" ", mp.msg.HINT_OR, " ")
+					pr (" ", mp.msg.OR, " ")
 				else
 					pr (", ")
 				end
@@ -160,7 +166,7 @@ function mp:err(err)
 		pr (mp:mesg 'MULTIPLE', " ", self.multi[1])
 		for k = 2, #self.multi do
 			if k == #self.multi then
-				pr (" ", mp.msg.HINT_AND, " ", self.multi[k])
+				pr (" ", mp.msg.AND, " ", self.multi[k])
 			else
 				pr (", ", self.multi[k])
 			end
@@ -234,11 +240,11 @@ mp.door = std.class({
 	end;
 }, std.obj):attr 'enterable,openable,door'
 
-local function pnoun(noun, m, ...)
+function mp:pnoun(noun, msg)
 	local ctx = mp:save_ctx()
 	mp.first = noun
 	mp.first_hint = noun:gram().hint
-	mp:message(m, ...)
+	std.p(mp.fmt(msg)) -- first is available only here, so fmt is forced
 	mp:restore_ctx(ctx)
 end
 
@@ -454,14 +460,25 @@ std.obj.display = function(s)
 	return c
 end
 
+local last_gfx = false
+
 std.player.look = function(s)
-	local scene
+	local scene, img
 	local r = s:where()
 	if s:need_scene() then
+		local gfx
+		gfx = std.call(std.here(), 'gfx') or std.call(std.game, 'gfx')
+		if not gfx and instead.tiny then
+			gfx = stead.call(std.here(), 'pic') or stead.call(std.ref 'game', 'pic')
+		end
+		if gfx and gfx ~= last_gfx then
+			img = fmt.c(fmt.img(gfx))
+			last_gfx = gfx
+		end
 		scene = r:scene()
 	end
-	return (std.par(std.scene_delim, scene or false, r:display() or false))
-end;
+	return (std.par(std.scene_delim, img or false, scene or false, r:display() or false, std.call(mp, 'footer') or false))
+end
 
 --
 local function check_persist(w)
@@ -760,20 +777,64 @@ mp.compass_dir = function(_, w, dir)
 	return w ^ ('@'..dir)
 end
 
-mp.msg.MULTIDSC = function(oo, inv)
-	return mp:multidsc(oo, inv)
+mp.msg.INFODSC = function(o)
+	return mp:infodsc(o)
+end
+
+mp.detailed_attr = {
+	{ 'worn' },
+	{ 'open', 'openable'},
+--	{ 'on', 'switchable'},
+--	{ 'light' }
+}
+
+function mp:infodsc(ob)
+	local info = {}
+	for _, v in ipairs(self.detailed_attr) do
+		local hit = #v > 0
+		for _, vv in ipairs(v) do
+			if ob:hasnt(vv) then
+				hit = false
+				break
+			end
+		end
+		if hit then
+			local n = 'HAS_'..string.upper(v[1])
+			if mp.msg[n] then
+				table.insert(info, mp:mesg(n, ob))
+			end
+		end
+	end
+
+	if #info > 0 then
+		pr(" (")
+		for k, i in ipairs(info) do
+			if #info > 1 and k == #info then
+				pr(' ', mp.msg.AND, ' ')
+			elseif k > 1 then
+				pr(", ")
+			end
+			pr(i)
+		end
+		pr(")")
+	end
 end
 
 function mp:multidsc(oo, inv)
 	local t = {}
 	local dup = {}
+	local hint = type(inv) == 'string' and inv or ''
 	for _, v in ipairs(oo) do
 		local n
 		if not v:has'concealed' then
-			if inv then
+			if inv == true then
 				n = std.call(v, 'inv')
 			end
-			n = n or v:noun(1)
+			if type(v.a_noun) == 'function' then
+				n = n or v:a_noun(hint, 1)
+			else
+				n = n or v:noun(hint, 1)
+			end
 			if dup[n] then
 				dup[n] = dup[n] + 1
 			else
@@ -793,17 +854,12 @@ function mp:multidsc(oo, inv)
 			end
 		end
 		if dup[v] > 1 then
-			pr (vv.ob:noun(self.mrd.lang.gram_t.plural, 1), " (", dup[v], " ", mp.msg.ENUM, ")")
+			pr (ob:noun(hint .. ','..self.mrd.lang.gram_t.plural, 1), " (", dup[v], " ", mp:mesg('ENUM', dup[v], ob), ")")
 		else
 			pr (v)
-			if ob:has'worn' then
-				pr(mp:mesg('WORN', ob))
-			elseif ob:has'openable' and ob:has'open' then
-				pr(mp:mesg('OPEN', ob))
-			end
+			pr(mp:mesg('INFODSC', ob))
 		end
 	end
-	p "."
 end
 
 -- Default priority in content
@@ -906,38 +962,10 @@ function mp:content(w, exam)
 	oo = ooo
 	if #oo == 0 then
 		if not inside and exam and mp.first == w and not something then
-			if w:has 'supporter' then
-				pnoun (w, 'Exam.ON')
-			else
-				pnoun (w, 'Exam.IN')
-			end
-			mp:message 'Exam.NOTHING'
+			mp:message ('Exam.NOTHING', w)
 		end
-	elseif #oo == 1 and not oo[1]:hint 'plural' then
-		if std.me():where() == w or std.here() == w then
-			mp:message('Look.HEREIS', w)
-		else
-			if w:has 'supporter' then
-				pnoun (w, 'Exam.ON')
-			else
-				pnoun (w, 'Exam.IN')
-			end
-			mp:message 'Exam.IS'
-		end
-		-- p(oo[1]:noun(1), ".")
-		mp:message('MULTIDSC', oo)
 	else
-		if std.me():where() == w or std.here() == w then
-			mp:message('Look.HEREARE', w)
-		else
-			if w:has 'supporter' then
-				pnoun (w, 'Exam.ON')
-			else
-				pnoun (w, 'Exam.IN')
-			end
-			mp:message 'Exam.ARE'
-		end
-		mp:message('MULTIDSC', oo)
+		mp:message('Exam.CONTENT', w, oo)
 	end
 -- expand?
 	for _, o in ipairs(expand) do
@@ -948,6 +976,14 @@ function mp:content(w, exam)
 end
 
 std.room:attr 'enterable,light'
+
+function mp:strip(r)
+	if std.strip_call and type(r) == 'string' then
+		r = r:gsub("^[%^\n\r\t ]+", "") -- extra heading ^ and spaces
+		r = r:gsub("[%^\n\r\t ]+$", "") -- extra trailing ^ and spaces
+	end
+	return r
+end
 
 function mp:step()
 	local old_daemons = {}
@@ -971,19 +1007,11 @@ function mp:step()
 		end
 	end
 	local s = std.game -- after reset game is recreated
-	local r = std.pget()
-	if std.strip_call and type(r) == 'string' then
-		r = r:gsub("^[%^\n\r\t ]+", "") -- extra heading ^ and spaces
-		r = r:gsub("[%^\n\r\t ]+$", "") -- extra trailing ^ and spaces
-	end
+	local r = mp:strip(std.pget())
 	s:reaction(r or false)
 	std.pclr()
 	s:step()
-	r = s:display(true)
-	if std.strip_call and type(r) == 'string' then
-		r = r:gsub("^[%^\n\r\t ]+", "") -- extra heading ^ and spaces
-		r = r:gsub("[%^\n\r\t ]+$", "") -- extra trailing ^ and spaces
-	end
+	r = mp:strip(s:display(true))
 	s:lastreact(s:reaction() or false)
 	s:lastdisp(r)
 	std.pr(r)
@@ -991,12 +1019,19 @@ function mp:step()
 end
 
 function mp:post_action()
-	if self:noparser() or
-		(self.event and self.event:find("Meta", 1, true)) or
-		self:comment() then
-		if not std.abort_cmd then
-			game:time(game:time() - 1)
+	if (self.event and self.event:find("Meta", 1, true)) or self:comment() or self:noparser() then
+		if std.abort_cmd then
+			return
 		end
+		local s = std.game
+		local r = mp:strip(std.pget())
+		s:reaction(r or false)
+		std.pclr()
+		r = mp:strip(s:display(self:noparser()))
+		s:lastdisp(r)
+		s:lastreact(s:reaction() or false)
+		std.pr(r)
+		std.abort_cmd = true
 		return
 	end
 	if mp.undo > 0 then
@@ -1015,16 +1050,6 @@ function mp:post_action()
 	if game.player:need_scene() then
 --		pn(iface:nb'')
 		local l = game.player:look() -- objects [and scene]
-		local gfx
-		if std.here().gfx ~= nil then
-			gfx = std.call(std.here(), 'gfx')
-		end
-		if not gfx and std.game.gfx ~= nil then
-			gfx = std.call(std.game, 'gfx')
-		end
-		if gfx then
-			pn(fmt.c(fmt.img(gfx)))
-		end
 		p(l, std.scene_delim)
 		game.player:need_scene(false)
 	end
@@ -1288,11 +1313,7 @@ function mp:detailed_Inv(wh, indent)
 			for _ = 1, indent do pr(iface:nb' ') end
 			local inv = std.call(o, 'inv') or o:noun(1)
 			pr(inv)
-			if o:has'worn' then
-				mp:message('WORN', o)
-			elseif o:has'openable' and o:has'open' then
-				mp:message('OPEN', o)
-			end
+			mp:message('INFODSC', o)
 			pn()
 			if o:has'supporter' or o:has'container' then
 				mp:detailed_Inv(o, indent + 1)
@@ -1322,7 +1343,8 @@ function mp:after_Inv()
 		mp:detailed_Inv(std.me(), 1)
 	else
 		p()
-		mp:message('MULTIDSC', oo, true)
+		mp:multidsc(oo, true)
+		p "."
 	end
 end
 
@@ -1393,7 +1415,7 @@ function mp:mesg(m, ...)
 	for _, n in ipairs(t) do
 		m = m[n]
 		if not m then
-			std.err("Wrong message id", 2)
+			std.err("Wrong message id: "..tostring(n), 2)
 		end
 	end
 	if type(m) ~= 'function' then
@@ -1634,6 +1656,14 @@ local function cont_taken(ob, taken)
 	end
 end
 
+--- Check if object is part of parent
+-- @param w       what
+function mp:partof(w)
+	return w:where() and not w:where():type'room' and
+		not w:where():has'container' and
+		not w:where():has'supporter'
+end
+
 function mp:TakeAll(wh)
 	local empty = true
 	wh = wh or std.me():where()
@@ -1643,7 +1673,8 @@ function mp:TakeAll(wh)
 	for _, o in ipairs(oo) do
 		if o:hasnt 'static' and o:hasnt'scenery' and o:hasnt 'concealed'
 			and not mp:animate(o)
-			and not cont_taken(o, taken) then
+			and not cont_taken(o, taken)
+			and not mp:partof(o) then
 			empty = false
 			mp:message('TAKING_ALL', o)
 			mp:subaction('Take', o)
@@ -1692,9 +1723,7 @@ function mp:Take(w, wh)
 		mp:message 'Take.SCENERY'
 		return
 	end
-	if w:where() and not w:where():type'room' and
-		not w:where():has'container' and
-		not w:where():has'supporter' then
+	if mp:partof(w) then
 		if w:has'worn' and mp:animate(w:where()) then
 			mp:message 'Take.WORN'
 		else
@@ -1722,6 +1751,10 @@ function mp:Remove(w, wh)
 	end
 	if w:where() ~= wh and w:inroom() ~= wh and w ~= everything then
 		mp:message 'Remove.WHERE'
+		return
+	end
+	if wh == std.me() then
+		mp:xaction('Disrobe', w, wh)
 		return
 	end
 	mp:xaction('Take', w, wh)
@@ -2783,6 +2816,12 @@ function mp:MetaHelp()
 	pn(mp:mesg 'HELP')
 end
 
+function mp:MetaScore()
+	mp:message'TITLE_TURNS'
+	pn()
+	mp:message'TITLE_SCORE'
+end
+
 function mp:MetaTranscript()
 	if self.logfile then
 		p("Log file: ", self.logfile)
@@ -2811,6 +2850,21 @@ function mp:MetaTranscriptOn()
 		f:close()
 		self.lognum = self.lognum + 1
 	end
+end
+function mp:MetaVersion()
+	p(mp.version)
+end
+function mp:MetaVerbs()
+	local verbs = {}
+	for _, v in ipairs(mp:verbs()) do
+		local vv = v.verb[1]
+		if vv and not vv.hidden then
+			local verb = vv.word .. (vv.morph or "")
+			table.insert(verbs, verb)
+		end
+	end
+	table.sort(verbs)
+	for _, v in ipairs(verbs) do p(v) end
 end
 
 mp.msg.MetaRestart = {}
@@ -3091,13 +3145,14 @@ instead.get_title = function(_)
 	local col = instead.theme_var('win.col.fg')
 	local score = ''
 	if mp.score then
-		score = fmt.tab('70%', 'center')..fmt.nb(mp:mesg('TITLE_SCORE') .. tostring(mp.score).."/"..tostring(mp.maxscore))
+		score = fmt.tab('70%', 'center')..fmt.nb(mp:mesg('TITLE_SCORE'))
 	end
-	local moves = fmt.tab('100%', 'right')..fmt.nb(mp:mesg('TITLE_TURNS') .. tostring(game:time() - 1))
+	local moves = fmt.tab('100%', 'right')..fmt.nb(mp:mesg('TITLE_TURNS'))
 	return iface:left((title.. score .. moves).."\n".. iface:img(string.format("box:%dx1,%s", w, col)))
 end
 
 --luacheck: globals content
-function content(...)
-	return mp:content(...)
+function content(w, ...)
+	w = std.object(w)
+	return mp:content(w, ...)
 end
