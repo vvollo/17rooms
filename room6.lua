@@ -211,6 +211,9 @@ obj {
                 move('kitchen_avocado_pieces', me());
                 remove 'kitchen_avocado';
                 return true;
+	    elseif w ^ "dagger" then
+                p"Здесь есть более подходящий для этого инструмент.";
+                return true;
             else
                 p"Этим разрезать авокадо не получится.";
                 return true;
@@ -275,6 +278,9 @@ obj {
                 p"Ты отрезаешь кусок хлеба.";
                 s.was_cut = true;
                 move('kitchen_bread_piece', me());
+                return true;
+	    elseif w ^ "dagger" then
+                p"Здесь есть более подходящий для этого инструмент.";
                 return true;
             else
                 p"Этим отрезать от хлеба не получится.";
