@@ -338,6 +338,7 @@ local function gram_score(an, g)
 	g = gram_norm(g)
 	if an["фам"] then score = score - 0.1 end
 	if an["арх"] then score = score - 0.1 end
+	if not g["од"] and not g["но"] and an["од"] and not an["но"] then score = score - 0.1 end
 	for _, vv in ipairs(g or {}) do
 		if vv:sub(1, 1) == '~' then
 			vv = vv:sub(2)
@@ -399,6 +400,14 @@ lang = { yo = false,
 			"деревьями/тв";
 			"деревьях/пр";
 			"деревьям/дт";
+		};
+		["листья/мр,но,мн,С"] = {
+			"листья/им";
+			"листья/вн";
+			"листьев/рд";
+			"листьями/тв";
+			"листьях/пр";
+			"листьям/дт";
 		};
 		["дерево/ср,но,С"] = {
 			"дерево/им", "деревья/им,мн";
