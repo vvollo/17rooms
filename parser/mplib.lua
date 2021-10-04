@@ -785,7 +785,7 @@ mp.detailed_attr = {
 	{ 'worn' },
 	{ 'open', 'openable'},
 --	{ 'on', 'switchable'},
---	{ 'light' }
+	{ 'light' }
 }
 
 function mp:infodsc(ob)
