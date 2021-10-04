@@ -158,6 +158,23 @@ obj {
 	before_Attack = function(s)
 		s:tearApart("разламываешь");
 	end;
+	before_Cut = function(s, w)
+        	if w == nil then
+        		p"Чем ты хочешь разрезать булочку?";
+        		return true;
+        	end;
+        	mp:check_held(w);
+        	if w ~= nil then
+        		if w ^ "dagger" then
+				s:tearApart("разрезаешь");
+                		return true;
+        		else
+                		p"Этим разрезать булочку не получится.";
+                		return true;
+            		end;
+        	end;
+        	return false;
+    	end;
 	tearApart = function(s, t)
 		p ("Ты " .. t .. " булочку из папье-маше и обнаруживаешь внутри " .. _'longkey':noun'вн' .. ".");
 		move ('longkey',pl);
