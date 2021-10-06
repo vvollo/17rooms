@@ -1,5 +1,5 @@
 local curdir = std.getinfo(1).source:gsub("^(.+[\\/])[^\\/]+$", "%1"):gsub("^@", "");
-
+local table = std.table
 require "fmt"
 require "snapshots"
 
@@ -97,6 +97,38 @@ local function utf_chars(b)
 	return res
 end
 
+local function utf_similar(str1, str2, lev)
+	local chars1 = utf_chars(str1)
+	local chars2 = utf_chars(str2)
+	local len1 = #chars1
+	local len2 = #chars2
+	if len1 < lev or len2 < lev then
+		return false
+	end
+
+	for i = 0, len2 - lev do
+		local ok = true
+		for k = 1, lev do
+			if chars1[k] ~= chars2[i + k] then
+				ok = false
+				break
+			end
+		end
+		if ok then return true end
+	end
+
+	for i = 0, len1 - lev do
+		local ok = true
+		for k = 1, lev do
+			if chars2[k] ~= chars1[i + k] then
+				ok = false
+				break
+			end
+		end
+		if ok then return true end
+	end
+	return false
+end
 --- Returns the Levenshtein distance between the two given strings.
 -- https://gist.github.com/Badgerati/3261142
 
@@ -223,8 +255,11 @@ end
 
 mp = std.obj {
 	nam = '@metaparser';
+	started = false;
 	score = false;
+	maxscore = false;
 	expert_mode = true;
+	strict_mode = false;
 	autohelp = false;
 	autohelp_limit = 1000;
 	autohelp_noverbs = false;
@@ -237,7 +272,7 @@ mp = std.obj {
 	detailed_inv = false;
 	daemons = std.list {};
 	{
-		version = "1.11";
+		version = "2.2.2";
 		cache = { tokens = {}, nouns = false };
 		scope = std.list {};
 		logfile = false;
@@ -254,6 +289,7 @@ mp = std.obj {
 			ff = std.rawget(_G, 'utf8_next') or utf_ff;
 			len = std.rawget(_G, 'utf8_len') or utf_len;
 			char = std.rawget(_G, 'utf8_char') or utf_char;
+			chars = utf_chars;
 		};
 		lev_thresh = 3;
 		lev_ratio = 0.20;
@@ -611,24 +647,29 @@ function mp.token.noun(w)
 	for _, o in ipairs(oo) do
 		local d = {}
 		local r = o:noun(attr, d)
-		for k, v in ipairs(d) do
-			local hidden = (k ~= 1) or w.hidden
-			if o:has 'multi' then
-				hidden = w.hidden or (v.idx ~= 1)
-			end
-			if o == std.me() and mp.myself then
-				for _, vm in ipairs(mp:myself(o, w.morph)) do
-					table.insert(ww, { optional = w.optional, word = vm, morph = attr, ob = o, alias = o.alias, hidden = hidden })
-				end
-				break
-			else
-				table.insert(ww, { optional = w.optional, word = r[k], ob = o, morph = attr, alias = v.alias, hidden = hidden })
+		if o == std.me() and mp.myself then
+			for _, vm in ipairs(mp:myself(o, w.morph) or {}) do
+				table.insert(ww, { optional = w.optional, word = vm, morph = attr, ob = o, alias = o.alias,
+					hidden = w.hidden or _ ~= 1 })
 			end
 		end
-		if o == mp.first_it then
-			table.insert(syms, 1, o)
-		elseif o == mp.second_it then
-			table.insert(syms, o)
+		if o ~= std.me() or (not o:hint'first' and not o:hint'second') then
+			for k, v in ipairs(d) do
+				local hidden = (k ~= 1) or w.hidden
+				if o:has 'multi' then
+					hidden = w.hidden or (v.idx ~= 1)
+				end
+				table.insert(ww,
+					{ optional = w.optional,
+						word = r[k], ob = o,
+						morph = attr, alias = v.alias,
+						hidden = hidden })
+			end
+			if o == mp.first_it then
+				table.insert(syms, 1, o)
+			elseif o == mp.second_it then
+				table.insert(syms, o)
+			end
 		end
 	end
 
@@ -689,6 +730,11 @@ function mp:eq(t1, t2, lev)
 		return self:__startswith(t2, t)
 	end
 	if lev then
+		t1 = self:norm(t1)
+		t2 = self:norm(t2)
+		if not utf_similar(t1, t2, 3) then -- 3 is hardcoded
+			return false
+		end
 		local l = utf_lev(t1, t2)
 		if l < lev and l / (utf_len(t1) + utf_len(t2)) <= self.lev_ratio then
 			return l
@@ -708,7 +754,7 @@ end
 
 function mp:pattern(t, delim)
 	local words = {}
-	local pat = str_split(self:norm(t), delim or "|")
+	local pat = str_split(t, delim or "|")
 	for _, v in ipairs(pat) do
 		local w = { }
 		local ov = v
@@ -939,6 +985,14 @@ function mp:skip_filter()
 	return true
 end
 
+function mp:ignore_filter(w)
+	return false
+end
+
+function mp:verb_filter(words)
+	return true
+end
+
 function mp:lookup_verb(words, lev)
 	local ret = {}
 	local w = self:verbs()
@@ -947,9 +1001,20 @@ function mp:lookup_verb(words, lev)
 		for _, vv in ipairs(v.verb) do
 			local verb = vv.word .. (vv.morph or "")
 			local i, len, rlev
-			i, len, rlev = word_search(words, verb, lev and self.lev_thresh)
-			if not i and not lev and verb ~= vv.word then
-				i, len = self:lookup_short(words, vv.word)
+			local vwords = mp.strict_mode and { words[1] } or words
+			i, len, rlev = word_search(vwords, verb, lev and self.lev_thresh)
+			if not i and not lev and vv.morph then
+				i, len = self:lookup_short(vwords, vv.word)
+				if i then
+					local v = {}
+					for k = i, i + len - 1 do
+						table.insert(v, words[k])
+					end
+					if verb:find(table.concat(v, ' '), 1, true) ~= 1 and
+						not self:verb_filter(v) then
+						i = false
+					end
+				end
 			end
 			if i and i > 1 and not self:skip_filter({words[i - 1]}) then
 				i = nil
@@ -1194,11 +1259,12 @@ function mp:compl_filter(v)
 			hidden = not v.ob.hint_noun
 		end
 	end
-	if hidden and self.compl_thresh == 0 then
+	local _, pre = self:compl_ctx()
+	local nsym = mp.utf.len(pre)
+	if hidden and self.compl_thresh == 0 and nsym == 0 then
 		return false
 	end
-	local _, pre = self:compl_ctx()
-	if mp.utf.len(pre) < self.compl_thresh then
+	if nsym < self.compl_thresh then
 		return false
 	end
 	if not v.ob or not v.morph then
@@ -1304,6 +1370,7 @@ function mp:compl_ctx_poss()
 			table.insert(res, v)
 		end
 	end
+	res.eol = ctx.eol
 	return res
 end
 
@@ -1318,6 +1385,7 @@ function mp:compl(str)
 	collectgarbage("stop")
 	self:compl_ctx_current();
 	poss = self:compl_ctx_poss()
+	eol = poss.eol
 	if (#poss == 0 and e) or #words == 0 then -- no context
 		if #words == 0 or (#words == 1 and not e) then -- verb?
 			poss, eol = self:compl_verb(words)
@@ -1333,13 +1401,16 @@ function mp:compl(str)
 			end
 		else -- matches
 			self.cache.nouns = self:nouns()
-			poss, eol, vargs = self:compl_match(words)
+			poss, eol = self:compl_match(words)
 		end
+		poss.eol = eol
 		self:compl_ctx_push(poss)
 	end
 	local _, pre = self:compl_ctx()
 	for _, v in ipairs(poss) do
-		if v.word == '*' then vargs = true end
+		if v.word == '*' and not v.hidden then
+			vargs = true
+		end
 		if self:startswith(v.word, pre) and not v.word:find("%*$") then
 			if not dups[v.word] then
 				dups[v.word] = v
@@ -1462,7 +1533,7 @@ function mp:match(verb, w, compl)
 	table.insert(parsed_verb, fixed_verb)
 	for _, d in ipairs(verb.dsc) do -- verb variants
 --		local was_noun = false
-		local match = { args = {}, vargs = {}, ev = d.ev, wildcards = 0, verb = parsed_verb, defaults = 0 }
+		local match = { args = {}, vargs = {}, skip = 0, ev = d.ev, wildcards = 0, verb = parsed_verb, defaults = 0 }
 		local a = {}
 		found = (#d.pat == 0)
 		for k, v in ipairs(w) do
@@ -1478,7 +1549,7 @@ function mp:match(verb, w, compl)
 		local vargs
 		for lev, v in ipairs(d.pat) do -- pattern arguments
 			if v == '*' or v == '~*' then
-				vargs = true -- found
+				vargs = v -- found
 				v = '*'
 			end
 			local noun = not not v:find("^~?{noun}")
@@ -1496,19 +1567,20 @@ function mp:match(verb, w, compl)
 					need_required = true
 					all_optional = false
 				end
-				if pp.default then
+				default = pp.default
+				if default then
 					word = pp.word
-					default = true
 				end
 				local new_wildcard
 				local k, len = word_search(a, pp.word)
-				if not k and mp.compare_len > 0 then
+				if not k and mp.compare_len > 0 and not pp.synonym then
 					k, len = word_search(a, pp.word, starteq)
 					new_wildcard = true
 				else
 					new_wildcard = false
 				end
-				if k and ((k < best or len > best_len) or
+				if (not required or mp.strict_mode) and k ~= 1 then k = false end -- ?word is only in 1st pos
+				if k and ((k < best or (k == best and len > best_len)) or
 					(not new_wildcard and wildcard and k <= best and len >= best_len)) then
 					wildcard = new_wildcard
 					best = k
@@ -1562,19 +1634,27 @@ function mp:match(verb, w, compl)
 						break
 					end
 					rlev = rlev + 1
+				end
+				if (wildcard or match.wildcards > 0) and best > 1 then -- do not skip words if wildcard used
+					found = false
 					vargs = false
+					break
 				end
 --				if false then
 --					a = tab_exclude(a, best, best + best_len - 1)
 --				else
 --				if not was_noun then
+				if not vargs then
+					match.skip = match.skip + (best - 1)
 					for i = 1, best - 1 do
 						table.insert(skip, a[i])
 					end
+				end
 --				end
 					a = tab_sub(a, best + best_len)
 --					table.remove(a, 1)
 --				end
+				vargs = false
 				table.insert(match, word)
 				table.insert(match.args, found)
 				if wildcard then
@@ -1600,9 +1680,14 @@ function mp:match(verb, w, compl)
 				else
 					found = false
 					if #a > 0 or #match.vargs > 0 then
-						table.insert(hints, { word = v, lev = rlev })
+						while #a > 0 do
+							table.insert(match.vargs, a[1])
+							table.insert(match, a[1])
+							table.remove(a, 1)
+						end
+						table.insert(hints, { word = v, lev = rlev, match = match })
 					else
-						table.insert(hints, { word = '*', lev = rlev })
+						table.insert(hints, { word = vargs, lev = rlev, match = match })
 					end
 				end
 				if not found then
@@ -1618,10 +1703,14 @@ function mp:match(verb, w, compl)
 					end
 				end
 				if not compl and mp.errhints then
+					local objs = {}
 					for _, pp in ipairs(pat) do -- single argument
-						if mp.utf.len(pp.word) >= 3 then
+						if not pp.synonym and not objs[pp.ob or 0] then
 							local k, _ = word_search(a, pp.word, self.lev_thresh)
-							if k then table.insert(hints, { word = pp.word, lev = rlev, fuzzy = true, match = match }) end
+							if k then
+								table.insert(hints, { word = pp.word, lev = rlev, fuzzy = true, match = match })
+								objs[pp.ob or 1] = true
+							end
 						end
 					end
 				end
@@ -1634,7 +1723,11 @@ function mp:match(verb, w, compl)
 						match.defaults = match.defaults + 1
 					end
 				end
-				table.insert(match.args, { word = false, optional = true } )
+				if default then
+					table.insert(match.args, { word = word, default = true } )
+				else
+					table.insert(match.args, { word = false, optional = true } )
+				end
 --				table.insert(hints, { word = v, lev = rlev })
 				found = true
 			end
@@ -1645,29 +1738,39 @@ function mp:match(verb, w, compl)
 --		end
 		if found or all_optional then
 			match.extra = (#a ~= 0)
-			table.insert(match, 1, fixed_verb) -- w[verb.verb_nr])
-			if self:skip_filter(skip) then
-				table.insert(matches, match)
-			end
-			if #match.vargs == 0 and not vargs then
-				match.vargs = false
+			if not match.extra or match.wildcards == 0 then
+				table.insert(match, 1, fixed_verb) -- w[verb.verb_nr])
+				if self:skip_filter(skip) then
+					table.insert(matches, match)
+				end
+				if #match.vargs == 0 and not vargs then
+					match.vargs = false
+				end
 			end
 		end
 	end
 
 	for k, v in ipairs(matches) do
 		v.nr = k
+--[[
 if false then
 		print("-----------", k)
 		for kk, vv in ipairs(v) do
 			print(vv)
 		end
 end
+]]--
 	end
 
 	table.sort(matches,
 		function(a, b)
 			local na, nb = #a - a.defaults, #b - b.defaults
+			if not a.extra and a.skip == 0 then
+				na = na + 100
+			end
+			if not b.extra and b.skip == 0 then
+				nb = nb + 100
+			end
 			if na == nb and a.wildcards == b.wildcards then
 				return a.nr < b.nr
 			end
@@ -1969,6 +2072,14 @@ function mp:correct(inp)
 		if rinp ~= '' then rinp = rinp .. ' ' end
 		rinp = rinp .. v
 	end
+	local strip_inp = str_split(inp, inp_split)
+	inp = ''
+	for _, v in ipairs(strip_inp) do
+		if not mp:ignore_filter(v) then
+			if inp ~= '' then inp = inp .. ' ' end
+			inp = inp .. v
+		end
+	end
 	local cmprinp = rinp:gsub("["..inp_split.."]+", " ")
 	if not self:eq(cmprinp, inp) then
 		pn(fmt.em("("..rinp..")"))
@@ -1989,7 +2100,7 @@ function mp:show_prompt(inp)
 	if std.cmd[1] == 'look' then
 		return false
 	end
-	if std.here():has 'cutscene' or std.here():has 'noprompt' or player_moved() or std.abort_cmd then
+	if std.here():has 'cutscene' or std.here():has 'noprompt' then
 		return false
 	end
 	if self.prompt then
@@ -2018,7 +2129,7 @@ function mp:parse(inp)
 
 	mp:log("> "..inp)
 
-	local noprompt = not mp:show_prompt(inp)
+	local prompt = mp:show_prompt(inp)
 
 	inp = inp:gsub("[ ]+", " "):gsub("["..inp_split.."]+", " "):gsub("[ \t]+$", "")
 
@@ -2044,7 +2155,7 @@ function mp:parse(inp)
 			return r
 		end
 	else
-		if std.cmd[1] ~= 'look' and not noprompt then
+		if std.cmd[1] ~= 'look' and prompt ~= false then
 			self:correct(inp)
 		end
 		-- here we do action
@@ -2054,12 +2165,18 @@ function mp:parse(inp)
 end
 
 std.world.display = function(s, state)
-	local l, av, pv
-	if mp.text == '' and game:time() == 1 and state ~= false then
+	local l, av, pv, first
+	if not mp.started and mp.text == '' and game:time() == 1 and state ~= false then
 		local r = std.call(game, 'dsc')
 		if type(r) == 'string' then
-			mp.text = r .. '^^'
+			first = true
+			if mp._pager_mode then
+				mp.text = fmt.anchor() .. r .. '^^' -- .. fmt.anchor()
+			else
+				mp.text = r .. '^^'
+			end
 		end
+		mp.started = true
 	end
 	if mp.clear_on_move and game:time() ~= 1 then
 		if player_moved() then mp:clear() end
@@ -2080,8 +2197,10 @@ std.world.display = function(s, state)
 	l = std.par(std.scene_delim, reaction or false,
 		    av or false, l or false,
 		    pv or false) or ''
-	mp:log(l)
-	if mp._pager_mode then
+	if l ~= '' then
+		mp:log(l)
+	end
+	if mp._pager_mode and not first then
 		mp.text = mp.text ..  fmt.anchor() .. l .. '^^' -- .. fmt.anchor()
 	else
 		mp.text = mp.text ..  l .. '^^' -- .. fmt.anchor()
@@ -2268,6 +2387,19 @@ function mp:shorten_input(w)
 	end
 end
 
+function mp:strip_input(w)
+	local i = 1
+	local len = #w
+	while i < len do
+		if mp:ignore_filter(w[i]) then
+			table.remove(w, i)
+			len = len - 1
+		else
+			i = i + 1
+		end
+	end
+end
+
 function mp:input(str)
 --	self.cache = { tokens = {} };
 	local hints = {}
@@ -2285,6 +2417,7 @@ function mp:input(str)
 		if not str then return false end
 	end
 	local w = str_split(str, inp_split)
+	mp:strip_input(w)
 	mp:shorten_input(w)
 	self.words = w
 	if #w == 0 then
@@ -2452,12 +2585,13 @@ function(cmd)
 			std.game:__start()
 		end
 		if mp:noparser() then
-			return true, false
+			return
 		end
 --		mp.inp = mp:docompl(mp.inp)
 		local r, v, n
 		repeat
 			if n then
+				std.busy(true)
 				std.abort_cmd = false
 				std.me():moved(false)
 				std.me():need_scene(false)
@@ -2465,6 +2599,7 @@ function(cmd)
 			r, v = mp:key_enter(cmd[1] == 'look')
 			n = true
 		until not mp:autoplay_pending() or mp:noparser()
+		std.busy(false)
 		mp:onedit()
 		return r, v
 	end
@@ -2481,7 +2616,7 @@ function mp:autoscript(w)
 	end
 	self.autoplay = io.open(w or 'autoscript') or false
 	if self.autoplay then
-		self:MetaTranscriptOn();
+		-- self:MetaTranscriptOn();
 		std.cmd = { 'autoscript' }
 		return true
 	end
@@ -2491,6 +2626,7 @@ end
 std.mod_init(
 function()
 	if DEBUG and mp.undo == 0 then mp.undo = 5 end
+	mp:pager_mode(true)
 	_'game'.__daemons = std.list {}
 end)
 
@@ -2516,10 +2652,10 @@ instead.mouse_filter(0)
 -- speedup undo
 local obusy = std.busy
 local busy_count = 0
-function std.busy()
+function std.busy(b)
 	busy_count = busy_count + 1
-	if (busy_count % 100) == 0 then
-		obusy()
+	if not b or (busy_count % 100) == 0 then
+		obusy(b)
 	end
 end
 function instead.fading()
@@ -2818,5 +2954,15 @@ function std.obj:has(attr)
 end
 
 function iface:title(t)
-	return(iface:bold( mrd.lang.cap(t)))
+	return(iface:bold(mrd.lang.cap(t)))
+end
+
+std.getmt("").__pow = function(a, b)
+	if b then
+		if std.is_obj(b) then
+			return b ^ a
+		end
+		return std.rawequal(a, b)
+	end
+	return false
 end

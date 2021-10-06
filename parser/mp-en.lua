@@ -70,7 +70,8 @@ mp.shorten = {
 	["se"] = "southeast";
 	["sw"] = "southwest";
 	["nw"] = "northwest";
-
+	["u"] = "up";
+	["d"] = "down";
 }
 
 mp.shorten_expert = {
@@ -87,8 +88,13 @@ function mp:skip_filter(w)
 	end
 	return true
 end
-
-_'@compass'.before_Default = 'Try to verb "go".'
+function mp:ignore_filter(w)
+	if w == 'the' or w == 'a' or w == 'an' then
+		return true
+	end
+	return false
+end
+_'@compass'.before_Default = function() p('"{#First}" is the direction. You can not ', mp.parsed[1], ' {#firstit}.') end
 
 function mp.msg.SCORE(d)
 	if d > 0 then
@@ -98,19 +104,16 @@ function mp.msg.SCORE(d)
 	end
 end
 
-function mp.msg.MULTIDSC(oo, inv)
-	if #oo > 0 then
-		local s = oo[1]
-		if not s:hint'proper' and not s:hint'surname' then
-			p "the"
-		end
-	end
-	mp:multidsc(oo, inv)
-end
-
 mp.door.word = "door"
-mp.msg.TITLE_SCORE = "Score: "
-mp.msg.TITLE_TURNS = "Turns: "
+mp.msg.TITLE_SCORE = function()
+	if mp.maxscore then
+		pr ("Score: ", mp.score, "/", mp.maxscore)
+	end
+	pr ("Score: ", mp.score)
+end
+mp.msg.TITLE_TURNS = function()
+	pr ("Turns: ", game:time() - 1)
+end
 mp.msg.YES = "Yes"
 mp.msg.WHEN_DARK = "Darkness."
 mp.msg.UNKNOWN_THEDARK = "Probably, it is because there is no light?"
@@ -118,6 +121,9 @@ mp.msg.COMPASS_NOWAY = "{#Me} can't go that way."
 mp.msg.COMPASS_EXAM_NO = "Nothing interesting in that direction."
 mp.msg.ENUM = "items."
 mp.msg.CUTSCENE_HELP = "Press <Enter> or enter {$fmt em|next} to continue."
+if instead.reinstead then
+	mp.msg.CUTSCENE_MORE = "^{$fmt em|(more)}"
+end
 mp.msg.DLG_HELP = "Enter number to select the phrase."
 mp.msg.NO_ALL = "This verb can not be used with all."
 mp.msg.DROPPING_ALL = function(w)
@@ -127,14 +133,14 @@ mp.msg.TAKING_ALL = function(w)
 	pn (iface:em("(taking "..w:the_noun()..")"))
 end
 mp.msg.TAKE_BEFORE = function(w)
-	pn (iface:em("(taking "..w:the_noun().." before)"))
+	pn (iface:em("(taking "..w:the_noun().." first)"))
 end
 mp.msg.DISROBE_BEFORE = function(w)
-	pn (iface:em("(disrobing "..w:the_noun().." before)"))
+	pn (iface:em("(disrobing "..w:the_noun().." first)"))
 end
 
 mp.msg.CLOSE_BEFORE = function(w)
-	pn (iface:em("(closing "..w:the_noun() .. " before)"))
+	pn (iface:em("(closing "..w:the_noun() .. " first)"))
 end
 
 local function str_split(str, delim)
@@ -340,10 +346,23 @@ end
 
 mp.msg.enter = "<Enter>"
 mp.msg.EMPTY = 'Excuse me?'
-mp.msg.UNKNOWN_VERB = "Unknown verb"
-mp.msg.UNKNOWN_VERB_HINT = "Maybe you meant"
+mp.msg.UNKNOWN_VERB = function(w)
+	p ("Unknown verb ", iface:em(w), ".")
+end
+mp.msg.UNKNOWN_VERB_HINT = function(w)
+	p ("The most similar word is ", iface:em(w), ".")
+end
 mp.msg.INCOMPLETE = "The sentence must be supplemented."
-mp.msg.INCOMPLETE_NOUN = "What do you want to apply the command to"
+mp.msg.INCOMPLETE_NOUN = function(w)
+	if w then
+		p ('What do you want to apply the command "'..w..'" to?')
+	else
+		p "What do you want to apply the command to?"
+	end
+end
+mp.msg.INCOMPLETE_SECOND_NOUN = function(w)
+	p ('Clarify the command: "', w, '"?')
+end
 mp.msg.UNKNOWN_OBJ = "Here is no such thing"
 mp.msg.UNKNOWN_OBJ = function(w)
 	if not w then
@@ -363,9 +382,8 @@ mp.msg.UNKNOWN_WORD = function(w)
 end
 mp.msg.NOTHING_OBJ = "Nothing."
 mp.msg.HINT_WORDS = "Maybe you meant"
-mp.msg.HINT_OR = "or"
-mp.msg.HINT_AND = "and"
 mp.msg.AND = "and"
+mp.msg.OR = "or"
 mp.msg.MULTIPLE = "Here is"
 mp.msg.LIVE_ACTION = function(w)
 	p (mp:It(w), " would not like it.")
@@ -374,11 +392,17 @@ mp.msg.NO_LIVE_ACTION = "{#Me} can only do that to something animate."
 mp.msg.NOTINV = function(t)
 	p (lang.cap(t:the_noun()) .. " must be taken first.")
 end
-mp.msg.WORN = function(_)
-	pr (" (worn)")
+mp.msg.HAS_WORN = function(_)
+	return "worn"
 end
-mp.msg.OPEN = function(_)
-	pr (" (opened)")
+mp.msg.HAS_OPEN = function(_)
+	return "opened"
+end
+mp.msg.HAS_ON = function(_)
+	return "switched on"
+end
+mp.msg.HAS_LIGHT = function(_)
+	return "providing light"
 end
 
 mp.msg.EXITBEFORE = "May be, {#me} should to {#if_has/#where,supporter,get off,get out of} {#thenoun/#where}."
@@ -403,12 +427,34 @@ mp.msg.NOROOM = function(w)
 end
 
 mp.msg.Exam.SWITCHSTATE = "{#Thefirst} {#is/#first} switched {#if_has/#first,on,on,off}."
-mp.msg.Exam.NOTHING = "nothing."
-mp.msg.Exam.IS = "there is"
-mp.msg.Exam.ARE = "there are"
-mp.msg.Exam.IN = "In {#thefirst}"
-mp.msg.Exam.ON = "On {#thefirst}"
-
+mp.msg.Exam.NOTHING = function(w)
+	p "There is nothing "
+	if w:has 'supporter' then
+		mp:pnoun (w, "on {#thefirst}.")
+	else
+		mp:pnoun (w, "in {#thefirst}.")
+	end
+end
+mp.msg.Exam.CONTENT = function(w, oo)
+	local single = not oo[1]:hint 'plural'
+	if std.me():where() == w or std.here() == w then
+		p "{#Me} can see"
+		mp:multidsc(oo)
+		p " here."
+		return
+	end
+	if single then
+		p "There is"
+	else
+		p "There are"
+	end
+	mp:multidsc(oo)
+	if w:has 'supporter' then
+		mp:pnoun (w, " on {#thefirst}.")
+	else
+		mp:pnoun (w, " in {#thefirst}.")
+	end
+end
 mp.msg.Exam.DEFAULT = "{#Me} {#does/#me} not see anything unusual in {#thefirst}.";
 mp.msg.Exam.SELF = "{#Me} {#does/#me} not see anything unusual in {#yourself/#me}.";
 
@@ -429,7 +475,8 @@ mp.msg.Walk.WALK = "But {#thefirst} {#is/#first} already here."
 mp.msg.Walk.NOWHERE = "Where?"
 mp.msg.Walk.INV = "{#Me} {#is/#me} holding this."
 
-mp.msg.Enter.EXITBEFORE = "{#Me} {#present/#me,need} to {#if_has/#where,supporter,get off from,leave} {#thenoun/#where} first."
+mp.msg.Enter.EXITBEFORE = "{#Me} {#present/#me,need} to "..
+	"{#if_has/#where,supporter,get off from,leave} {#thenoun/#where} first."
 
 mp.msg.Exit.NOTHERE = "But {#me} {#is/#me} not {#if_has/#first,supporter,on,in} {#thefirst}."
 mp.msg.Exit.NOWHERE = "But {#me} {#have/#me} no way to exit."
@@ -619,7 +666,8 @@ mp.msg.Answer.EMPTY = "{#Me} can't find anything to answer."
 mp.msg.Answer.SELF = "Good answer."
 
 mp.msg.Yes.YES = "That was a rhetorical question."
-mp.msg.Buy.USE = "How exactly?"
+mp.msg.Buy.BUY = "Nothing is on sale."
+mp.msg.Use.USE = "How exactly?"
 
 mp.keyboard_space = '<space>'
 mp.keyboard_backspace = '<backspace>'
@@ -628,21 +676,21 @@ mp.msg.GAMEOVER_HELP = [[Use restart to restart game.]];
 
 function mp:myself(ob)
 	if ob:hint'first' then
-		return { "myself", "me" }
+		return { "myself", "self", "me" }
 	end
 	if ob:hint'second' then
-		return { "yourself", "me", "myself" }
+		return { "yourself", "myself", "self", "me" }
 	end
 	if ob:hint'plural' then
-		return { "themselves", "our" }
+		return { "themselves", "ourselves", "self" }
 	end
 	if ob:hint'female' then
-		return { "herself", "me" }
+		return { "herself", "myself", "self", "me" }
 	end
 	if ob:hint'male' then
-		return { "himself", "me" }
+		return { "himself", "myself", "self", "me" }
 	end
-	return { "itself" }
+	return { "itself", "myself", "self", "me" }
 end
 
 function mp:it(w)
@@ -695,7 +743,8 @@ function mp:before_Enter(w)
 	return false
 end
 
-mp.msg.HELP = [[{$fmt b|INSTRUCTIONS}^^
+mp.msg.HELP = function()
+	p [[{$fmt b|INSTRUCTIONS}^^
 
 Enter your actions in verb noun form. For example:^
 > open door^
@@ -709,13 +758,27 @@ To examine whole scene, enter "exam" or press "Enter".^
 ^
 To exam your inventory, enter "inv".^
 ^
-Use compass directions to walk. For example: "go north" or "north" or just "n".
-^^
-You may use the "TAB" key for autocompletion.
-]]
+Use compass directions to walk. For example: "go north" or "north" or just "n". There are also up and down directions, outside and inside.]]
+	if not instead.tiny then
+		p [[^^You may use the "TAB" key for autocompletion.]]
+	else
+		p [[^^Use "save" and "load" to save and load game.]]
+		if instead.tiny then
+			p [[For ex. "save 1".]]
+		end
+		p [[Restart game: "restart".]]
+		if instead.reinstead then
+			p [[^^Also available: !restart, !quit, !info, !save, !load and !font <size>.]]
+		end
+	end
+
+end
 
 function mp.token.compass1(_)
-	return "{noun_obj}/@n_to,compass|{noun_obj}/@ne_to,compass|{noun_obj}/@e_to,compass|{noun_obj}/@se_to,compass|{noun_obj}/@s_to,compass|{noun_obj}/@sw_to,compass|{noun_obj}/@w_to,compass|{noun_obj}/@nw_to,compass"
+	return "{noun_obj}/@n_to,compass|{noun_obj}/@ne_to,compass|"..
+		"{noun_obj}/@e_to,compass|{noun_obj}/@se_to,compass|"..
+		"{noun_obj}/@s_to,compass|{noun_obj}/@sw_to,compass|"..
+		"{noun_obj}/@w_to,compass|{noun_obj}/@nw_to,compass"
 end
 
 function mp.token.compass2(_)
@@ -724,12 +787,18 @@ end
 
 std.mod_init(function(_)
 Verb { "#Walk",
-	"go,walk,run,enter",
+	"go,walk,run,enter,come",
 	"{compass1} : Walk",
 	"in|into|inside|on {noun}/scene,enterable : Enter",
 	"{noun}/scene : Walk",
 	"{compass2}: Walk",
-	"outside|out|away: Exit" }
+	"outside|out|away: Exit"
+}
+
+Verb { "#Enter",
+	"enter",
+	"{noun}/scene,enterable : Enter"
+}
 
 Verb { "#Sit",
 	"sit,stand",
@@ -740,7 +809,7 @@ Verb { "#Lie",
 	"down in|into|inside|on {noun}/scene,enterable : Enter" }
 
 Verb { "#Exit",
-	"exit,out",
+	"exit,out,leave",
 	"?from {noun}/scene : Exit",
 	": Exit"}
 
@@ -751,6 +820,7 @@ Verb { "#Exam",
 	"inventory : Inv",
 	"~ under {noun} : LookUnder",
 	"~ in|inside|into|through|on {noun} : Search",
+	"~ ?at {noun} : Exam",
 	"~ up * in {noun} : Consult reverse",
 }
 
@@ -853,6 +923,7 @@ Verb {
 
 Verb {
 	"#SwitchOff",
+	"switch",
 	"off {noun}: SwitchOff",
 	"~ {noun} off : SwitchOff",
 }
@@ -979,7 +1050,7 @@ Verb {
 
 Verb {
 	"#Listen",
-	"listen.hear",
+	"listen,hear",
 	"Listen",
 	"?to {noun}: Listen",
 }
@@ -1090,8 +1161,7 @@ Verb {
 Verb {
 	"#Talk",
 	"talk",
-	"with {noun}/live : Talk"
-
+	"with|to {noun}/live : Talk"
 }
 
 Verb {
@@ -1180,6 +1250,8 @@ MetaVerb {
 	"~parser",
 	"expert on : MetaExpertOn",
 	"expert off : MetaExpertOff",
+	"verbs : MetaVerbs",
+	"version : MetaVersion",
 }
 
 MetaVerb {
@@ -1217,6 +1289,12 @@ std.mod_start(function()
 			"#MetaUndo",
 			"~undo",
 			"MetaUndo",
+		}
+	end
+	if mp.score then
+		MetaVerb {
+		"~ счёт",
+		"MetaScore",
 		}
 	end
 end)
