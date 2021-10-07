@@ -96,6 +96,9 @@ room {
 			   if where("room4_sapfir") ^ "room4_dolphin" and where("room4_rybin") ^ "room4_crab" and where("room4_izymryd") ^ "room4_frog" then
 				  s.seen = true
 				  move(me(), "room4_kladovka")
+				  disable("room4_dolphin")
+				  disable("room4_crab")
+				  disable("room4_frog")
 				  mp.score=mp.score+1
 			   else
 				  --"посмотреть"
@@ -207,6 +210,13 @@ room {
 	  end
 	  return v .. "Маленький остров, представляющий собой цветочную поляну, окружённую водой."
    end;
+   before_Default = function(s, ev, w, wh)
+	if wh == _'room4_gems' then
+		p"Камнями лучше распоряжаться по отдельности.";
+	else
+		return false;
+	end;
+   end;
    obj = {
 	  "room4_mirror",
 	  obj {
@@ -215,13 +225,7 @@ room {
 		 dsc = "Весь остров в цветах.";
 		 description = [[Прекрасные алые розы.]];
 		 ["before_Take,Tear"] = function(s)
-			if not have "room4_flower" then
-				take "room4_flower"
-				--"сорвать"
-				return "{#Me/им} {#word/сорвать,#me,прш} цветок."
-			else
-				return "Мне не нужен ещё один цветок."
-			end
+			mp:xaction('Take', _'room4_flower');
 		end;
 		before_Give = function(s, w)
 			return _"room4_flower".before_Give(_"room4_flower", w)
@@ -230,7 +234,7 @@ room {
 	  obj {
 			-"флейта|дудка|дудочка|дуда";
 		 nam = "room4_fluet";
-		 dsc = "В траве лежит флейта.";
+		 init_dsc = "В траве лежит флейта.";
 		 description = [[Изящная флейта, искусно вырезанная из слоновой кости.]];
 		 -- Следующую строку с комментарием не удаляй. Она добавляет слово "брать" в словарь игры
 		 --"брать"
@@ -246,6 +250,7 @@ room {
 		 before_Taste = "{#Me/им} не {#word/хотеть,#me,нст} пробовать флейту на вкус.";
 		 before_Touch = "Гладкая и приятная на ощупь.";
 		 ["Blow,Use,Play"] = function(s)
+			mp:check_held(s);
 			if s:once() then
                            mp.score=mp.score+1
 			   enable "room4_mermaid"
@@ -261,14 +266,15 @@ room {
 		 dsc = false,
 		 donated = false,
 		 description = "Прекрасная алая роза.";
-		 Tear = function(s)
-			if have(s) then
+		 ["before_Take,Tear"] = function(s)
+			if have(s) or s.donated then
 --			if s.once then
 			   -- Объясняем, что больше одного цветка не нужно или что-то такое
-			   return "Мне больше не нужны цветы. Да и жаль рвать такую красоту."
+			   return "{#Me/дт} больше не нужны цветы. Да и жаль рвать такую красоту."
 			else
 			   take(s)
-			   return "Я сорвала цветок."
+			   --"сорвать"
+			   return "{#Me/им} {#word/сорвать,#me,прш} цветок."
 			end
 		 end;
 		 Show = function(s, w)
@@ -347,30 +353,40 @@ room {
 			before_Touch = "Вода ледяная, бррр... Странно, при такой-то жаре.";
 	  }:attr "scenery",
 	  obj {
-			-"рама";
+			-"рама|фигурки,животные/од";
 			description = "Бронзовая старинная рама. Украшена фигурками змеи, краба и дельфина.";
 			before_Take = "Невозможно оторвать раму от зеркала.";
 			before_Smell = "Пахнет металлом.";
 			before_Taste = "На вкус, как металл.";
 			before_Touch = "Прохладный металл.";
+			before_Receive = "Лучше вставлять в каждую фигурку по отдельности.";
 	  }:attr "scenery",
 	  obj {
 			-"драгоценные камни|камни|драгоценный камень|камень";
 			nam = "room4_gems";
-		description = function(s)
+		description = "Красивые драгоценные камни, что дала мне русалка.";
+		before_Show = function(s, w)
+		 	if w ^ "room4_mermaid" then
+				return "Русалка кивает, и показывает пальчиком на висящее в воздухе зеркало."
+			end;
+			return "Камнями лучше распоряжаться по отдельности.";
+		end;
+		before_Take = function(s)
 			if have "room4_izymryd" or have "room4_rybin" or have "room4_sapfir" then
-				return "Красивые драгоценные камни, что дала мне русалка."
+				return "Они уже у меня."
 			else
 				return false
 			end
 		end;
-		Show = function(s, w)
-			return "Русалка кивает, и показывает пальчиком на висящее в воздухе зеркало."
-		end;
-		before_Take = "Они уже у меня.";
 		before_Smell = "Пахнет красотой.";
 		before_Taste = "На вкус, как стекло.";
 		before_Touch = "Прохладные с идеальной огранкой.";
+		before_Default = function(s, ev, w)
+			if ev == 'Exam' then
+				return false;
+			end;
+			p"Камнями лучше распоряжаться по отдельности.";
+		end;
 	  }:attr "scenery":disable(),
 	  obj {
 			-"русалка|ресницы|глаза|волосы|грудь";
@@ -386,6 +402,9 @@ room {
 					Со Смертью заключив ужасный договор^
 					За тысячу людей, что в бездну он отправил^
 					Воскреснет вновь пират, продолжит свой террор.]];
+		 end;
+		 before_Remove = function(s, w)
+			mp:xaction('Take',s);
 		 end;
 		 life_Give = function(s, w)
 			-- Очередная магия метапарсера для генерации фраз
@@ -411,16 +430,24 @@ obj {
    description = [[Синий полупрозрачный драгоценный камень.]];
    before_Insert = function(s, w)
 	  if not w ^ "room4_dolphin" then
-		 return "Камень никак не хочет держаться в углублении."
+		if w ^ "room4_crab" or w ^ "room4_frog" then
+			return "Камень никак не хочет держаться в углублении."
+		else
+			return false
+		end
 	  end
 	  place(s, w)
+	  s:attr "scenery"
 	  --"вставить"
 	    return "{#Me/им} вставляешь сапфир в углубление."
       end;
 	Show = function(s, w)
-		return "Русалка кивает, и показывает пальчиком на висящее в воздухе зеркало."
+	 	if w ^ "room4_mermaid" then
+			return "Русалка кивает, и показывает пальчиком на висящее в воздухе зеркало."
+		end;
+		return false;
 	end;
-}: attr "scenery"
+}
 
 obj {
 	  -"рубин";
@@ -429,15 +456,23 @@ obj {
    description = [[Сияющий красный драгоценный камень.]];
    before_Insert = function(s, w)
 	  if not w ^ "room4_crab" then
-		 return "Камень слишком большой и не влезает в углубление."
+		if w ^ "room4_dolphin" or w ^ "room4_frog" then
+			return "Камень слишком большой и не влезает в углубление."
+		else
+			return false
+		end
 	  end
 	  place(s, w)
+	  s:attr "scenery"
 	  return "{#Me/им} вставляешь рубин в углубление."
    end;
 	Show = function(s, w)
-		return "Русалка кивает, и показывает пальчиком на висящее в воздухе зеркало."
+	 	if w ^ "room4_mermaid" then
+			return "Русалка кивает, и показывает пальчиком на висящее в воздухе зеркало."
+		end;
+		return false;
 	end;
-}: attr "scenery"
+}
 
 obj {
 	  -"изумруд";
@@ -446,15 +481,23 @@ obj {
    description = [[Зелёный блестящий драгоценный камень.]];
    before_Insert = function(s, w)
 	  if not w ^ "room4_frog" then
-		 return "Камень не подходит по форме к этому углублению."
+		if w ^ "room4_crab" or w ^ "room4_dolphin" then
+			return "Камень не подходит по форме к этому углублению."
+		else
+			return false
+		end
 	  end
 	  place(s, w)
+	  s:attr "scenery"
 	  return "{#Me/им} вставляешь изумруд в углубление."
    end;
 	Show = function(s, w)
-		return "Русалка кивает, и показывает пальчиком на висящее в воздухе зеркало."
+	 	if w ^ "room4_mermaid" then
+			return "Русалка кивает, и показывает пальчиком на висящее в воздухе зеркало."
+		end;
+		return false;
 	end;
-}: attr "scenery"
+}
 
 obj {
    -- Уточнение /но сообщает парсеру, что дельфин у нас неодушевлённый
@@ -472,7 +515,7 @@ obj {
 	  --"подходит"
 	  return "{#Second/им} не {#word/подходит,#second} по форме."
    end;
-}:attr "static,container,transparent"
+}:attr "static,container,open"
 
 obj {
 	  -"отверстие в фигурке краба/но|углубление в фигурке краба/но|краб/но|углубление/но";
@@ -488,7 +531,7 @@ obj {
 	  --"подходит"
 	  return "{#Second/им} не {#word/подходит,#second} по форме."
    end;
-}:attr "static,container,transparent"
+}:attr "static,container,open"
 
 obj {
 	  -"отверстие в фигурке змеи/но|углубление в фигурке змеи/но|змея/но";
@@ -504,7 +547,7 @@ obj {
 	  --"подходит"
 	  return "{#Second/им} не {#word/подходит,#second} по форме."
    end;
-}:attr "static,container,transparent"
+}:attr "static,container,open"
 --
 --
 --
