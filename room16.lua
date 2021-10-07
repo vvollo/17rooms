@@ -51,31 +51,32 @@ room {
 			p "Из шкафа идёт еле уловимый запах чего-то необычайного.";
 		end;
 	end;
-	before_Exit = function(s)
-		if(s.state == 0) then
+	before_Walk = function(s, w)
+		if (w^'@e_to' and s.state == 0) then
 			if(_'room16_wardrobe'.state == 1) then _'room16_wardrobe'.state = 0 end;
 			_'room16_wardrobe':attr '~open'
 			remove(_'room16_o',pl)
 			remove(_'room16_x',pl)
 			DaemonStop 'room16_AI'
 			return false;
-		else
-			if(_'room16_wall'.state == 3) then
+		elseif (s.state == 1 and (w^'@e_to' or w^'@out_to')) then
+			if (_'room16_wardrobe'.state >= 4) then
+				return false
+			end;
+			if w^'@out_to' and (_'room16_wall'.state == 3) then
 				_'room16_AI'.daemon_stage = 9
 			else
 				p('Выхода нет!')
 			end;
+			return true;
 		end;
+		return false;
 	end;
-	before_Walk = function(s,w)
-		if mp:compass_dir(w) == 'e_to' then
-			if (s.state > 0) then
-				p 'Выхода больше нет!';
-			else
-				return false;
-			end;
-		else
+	before_Exit = function(s)
+		if (s.state == 0) or (_'room16_wardrobe'.state >= 4) then
 			return false;
+		else
+			mp:xaction('Walk','@out_to')
 		end;
 	end;
 	after_Drop = function(s, w)
