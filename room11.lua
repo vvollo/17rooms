@@ -1,10 +1,16 @@
 room {
 	nam = "room11_kabinet";
 	title = "Кабинет";
-	dsc = "К востоку гостиная. В кабинете есть стол, стул, шкаф. Прямо за столом на стене висит чей-то портрет. Здесь есть окно.";
-	before_Enter = function()
-		DaemonStart('kabinet_fenestro');
-		return false
+	dsc = function(s)
+		if not isDaemon('kabinet_fenestro') then
+			if s:once() then
+				_'kabinet_birdo':disable();
+				_'kabinet_korvo':disable();
+				_'kabinet_stranga':disable();
+			end;
+			DaemonStart('kabinet_fenestro');
+		end;
+		return "К востоку гостиная. В кабинете есть стол, стул, шкаф. Прямо за столом на стене висит чей-то портрет. Здесь есть окно.";
 	end;
 	before_Think = function(s)
 		if s:once(mp.event) then
@@ -679,33 +685,28 @@ room {
 					_'kabinet_korvo2';
 					_'kabinet_stranga2';
 				};
-				for o = 3, #evento do
-					if rnd(12) <= 3 then
-						evento[o]:enable();
-						remove(evento2[o]);
-					else
-						evento[o]:disable();
-						move(evento2[o],here());
+				local r = rnd(12);
+				if r <= 3 then
+					evento[1]:enable();
+					remove(evento2[1]);
+				else
+					evento[1]:disable();
+					move(evento2[1],here());
 				end;
-			end;
-				for o = 2, #evento do
-					if rnd(12) >= 6 and rnd(12) <= 9 then
-						evento[o]:enable();
-						remove(evento2[o]);
-					else
-						evento[o]:disable();
-						move(evento2[o],here());
+				if r >= 6 and r <= 9 then
+					evento[2]:enable();
+					remove(evento2[2]);
+				else
+					evento[2]:disable();
+					move(evento2[2],here());
 				end;
-			end;
-				for o = 1, #evento do
-					if rnd(12) >= 10 then
-						evento[o]:enable();
-						remove(evento2[o]);
-					else
-						evento[o]:disable();
-						move(evento2[o],here());
+				if r >= 10 then
+					evento[3]:enable();
+					remove(evento2[3]);
+				else
+					evento[3]:disable();
+					move(evento2[3],here());
 				end;
-			end;
 			end;
 			before_Take = 'Окно взять помогут только мастера, а ты не можешь.';
 			before_Attack = 'Разбить окно? И зачем?';
@@ -1031,7 +1032,7 @@ room {
 				["птица/пр"] = "птице";
 		}:attr 'animate,concealed';
 		obj {
-			-"существо/ср|тварь/жр|нечто/ср|белое/ср|оно/ср";
+			-"существо/ср|тварь/жр|нечто/ср|белое/ср";
 			nam = 'kabinet_stranga2';
 			dsc = 'Твари здесь уже нет.';
 			description = function(s)
