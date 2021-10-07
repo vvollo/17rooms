@@ -10,6 +10,7 @@ room {
     dsc = function(s)
         p"Оранжевые стены кухни радуют глаз. Свет пробивается в приоткрытое окно в западной стене.^^Если пойти на север, можно вернуться в столовую, через белую дверь, а облупившаяся деревянная дверь на востоке ведёт в кладовку.";
         DaemonStart('kitchen_old_man');
+	mp.compare_len=5;	-- чтобы "хлеб" не воспринимался как "хлебница"
     end;
     n_to = 'kitchen_door_north';
     -- n_to = 'room6_test';
@@ -23,7 +24,7 @@ room {
     cant_go = "Отсюда можно пойти только на восток в кладовку и на север в столовую.";
     before_Think = "Хмм.";
     before_Listen = function(s)
-        if _'kitchen_old_man'.counter > 2 and _'kitchen_old_man'.counter < 7 then
+        if (_'kitchen_old_man'.counter > 2 and _'kitchen_old_man'.counter < 7) or (_'kitchen_old_man'.counter_lift_interaction == 1 or _'kitchen_old_man'.counter_lift_interaction == 2) or _'kitchen_old_man'.counter_since_fed == 3 or (_'kitchen_old_man'.counter_lift_interaction_2 > 0 and _'kitchen_old_man'.counter_lift_interaction_2 < 6) then
             p"Ты слушаешь, что говорит старик.";
             return true;
         end;
@@ -110,6 +111,7 @@ function kitchen_drop_items()
         p"Ты кладёшь зажигалку на стол.";
         move('kitchen_lighter', 'kitchen_round_table');
     end;
+    mp.compare_len=3;		-- вернуть как было
 end;
 
 door {
@@ -559,6 +561,7 @@ obj {
                         _'kitchen_lift':attr '~open';
                         _'kitchen_lift'.loc = 'down';
                         p "«Спасибо, было вполне себе сносно. Полагаю, проявленная тобою забота заслуживает соразмерной награды, хе-хе», — он захлопывает дверцу лифта и отправляет его вниз.";
+			s.counter_lift_interaction = 3;
                         s.fed = true;
                         mp.score=mp.score+1;
                     end;
