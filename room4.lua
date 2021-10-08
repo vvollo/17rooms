@@ -290,6 +290,7 @@ room {
 			          mp.score=mp.score+1
 				  s.donated = true
 				  place(s, here())
+				  s:attr "scenery"
 				  take "room4_sapfir"
 				  take "room4_rybin"
 				  take "room4_izymryd"
