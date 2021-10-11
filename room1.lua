@@ -140,7 +140,7 @@ obj {
 			end
 			return true
 		else
-			if not s:has'open' then
+			if not s:has'open' and _'room1_doorkey':inside(s) then
 				pn("В почтовом ящике что-то поблескивает. Нужно поскорее его открыть!")
 				return true
 			end
