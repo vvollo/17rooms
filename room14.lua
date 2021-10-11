@@ -946,6 +946,8 @@ obj {
 			_"room14_door".description = "Массивная деревянная дверь полностью скрылась в стене, не оставив ни следа."
 			_"room14_platform".door = true;
 			_"room14_secondfloor".w_to = 'room16_mystical';
+			remove("piramidekey");
+			remove("room14_platform");
 		else 
 			return false
 		end
