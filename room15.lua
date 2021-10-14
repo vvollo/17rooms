@@ -10,12 +10,16 @@ room {
 		if pl:where()^'room15_void' then
 			return "Тебя окружает пустота. Через окно ты видишь просторную спальню. ";
 		else
-			return "Просторная комната с единственным окном. Выход из комнаты находится на западе. ";
+			local v = "";
+			if s:once() then
+				v = "Зайдя в спальню, ты внезапно осознаёшь, как сильно устала! Тебе хочется {$fmt em|спать}.^^";
+			end;
+			return v .. "Просторная комната с единственным окном. Выход из комнаты находится на западе. ";
 		end;
 	end;
 	w_to = 'room14_secondfloor';
 	out_to = 'room14_secondfloor';
-	awake = false;
+	awake = true;
 	complete = false;
 
 	lampon = false;
@@ -122,7 +126,7 @@ room {
 				pr 'Прошлый сон все еще слишком свеж в твоей памяти, чтобы погружаться в новый. ';
 			elseif _'room15_curtain':has('open') then
 				pr 'Свет из окна не дает тебе заснуть. ';
-			elseif _'room15_tv':has('luminous') then
+			elseif _'room15_tv':has('on') then
 				pr 'Телевизор не дает тебе заснуть. ';
 			elseif s.awake then
 				s.awake = false;
@@ -263,7 +267,7 @@ obj {
 	["before_Ask,AskFor,AskTo"] = 'Увы, занавески отказываются исполнять твою просьбу. Объяснить свой отказ они тоже не изволят. ';
 	before_Blow = 'Ты дуешь на занавески, но тяжелая ткань почти не шевелится. ';
 	before_Take = 'Занавески тебе не понадобятся. ';
-}: attr('concealed,openable,luminous,static');
+}: attr('concealed,openable,luminous,static,open,light');
 
 obj {
 	-"окно";
@@ -271,6 +275,7 @@ obj {
 	rope = false;
 	dsc = function(s)
 		if _'room15_curtain':has('open') then
+			pr 'Занавески открыты. ';
 			if _'room15_bedroom'.awake then
 				pr 'За окном ты видишь голубое небо. ';
 			else
@@ -285,6 +290,7 @@ obj {
 	end;
 	description = function(s)
 		if _'room15_curtain':has('open') then
+			pr 'Занавески открыты. ';
 			if _'room15_bedroom'.awake then
 				pr 'За окном ты видишь голубое небо. ';
 			else
@@ -366,6 +372,7 @@ obj {
 		pr 'Большая кровать, застеленная покрывалом. ';
 		mp:content(s);
 	end;
+	sleep_turn = 1;
 	inside_dsc = 'Ты лежишь на большой кровати. ';
 	after_Enter = 'Ты ложишься на кровать. ';
 	before_LookUnder = function(s)
@@ -404,6 +411,14 @@ obj {
 	["before_Talk,Tell,Answer,Ask,AskFor,AskTo"] = 'Кровать не отвечает на твои потуги заговорить. ';
 	before_Blow = 'Ты подула на кровать, но ничего не изменилось. ';
 	before_Take = 'Кровать слишком тяжелая. ';
+	each_turn = function(s)
+		if _'room15_bedroom'.awake and not _'room15_bedroom'.complete then
+			s.sleep_turn = s.sleep_turn + 1;
+			if (s.sleep_turn % 10) == 0 then
+				p('Тебе ужасно хочется {$fmt em|спать}.');
+			end;
+		end;
+	end;
 	obj = {
 		'room15_bedspread'
 	};
@@ -912,7 +927,7 @@ obj {
 	end;
 	before_Kiss = "Что если тебя током ударит? ";
 	before_Take = 'Не трогай, уронишь!';
-}: attr('switchable,static,on');
+}: attr('switchable,static,on,luminous');
 
 obj {
 	-"пустота,тьма,темнота|ничто,ничто за окном|ничего,ничего за окном";
