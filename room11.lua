@@ -10,7 +10,12 @@ room {
 			end;
 			DaemonStart('kabinet_fenestro');
 		end;
-		return "К востоку гостиная. В кабинете есть стол, стул, шкаф. Прямо за столом на стене висит чей-то портрет. Здесь есть окно.";
+		local mus = '. Интересно, откуда?';
+		if not _'kabinet_radio':disabled() then
+			mus = ', звучащая из радиолы.';
+		end;
+		return [[К востоку гостиная. В кабинете есть стол, стул, шкаф. Прямо за столом на стене висит чей-то портрет. Здесь есть окно.^^
+			В комнате играет тихая музыка]] .. mus;
 	end;
 	before_Think = function(s)
 		if s:once(mp.event) then
@@ -32,6 +37,28 @@ room {
 	e_to = function()
 		DaemonStop('kabinet_fenestro')
 		walkin 'room12_gostinnaya';
+	end;
+	before_Play = function(s,w)
+		if w == _'room4_fluet' and _'kabinet_notelist'.was_read then
+			p [[Ты играешь на флейте запомненную мелодию. Раздаётся завораживающая песня русалки:^
+				Свирепый пират исходил все моря,^
+				Лишь в месте одном не бросал якоря.^
+				Там смерть предсказал ему мудрый пророк.^
+				Названье -- два слова, а в них -- страшный рок.^
+				И зеркалу, где затаился бандит,^
+				Ты код назови, что надёжно укрыт.^
+				Услышав слова, капитан устрашится^
+				И будет готов кое-чем поделиться.]];
+		else
+			return false;
+		end;
+	end;
+	before_Listen = function(s,w)
+		if not w or w ^ 'kabinet_fonmusic' or w ^ 'kabinet_radio' then
+			p 'Немного послушав, ты начинаешь разбирать мотив: \"... следить буду строго, мне сверху видно всё, ты так и знай!\"';
+		else
+			return false;
+		end;
 	end;
 	}:with{
 		obj {
@@ -63,12 +90,7 @@ room {
 						if s:once(mp.event) then
 							p 'Тишина...';
 						else
-							local msg = {
-								"И снова тишина!";
-								"Звуки тишины.";
-								"Тишина...";
-							};
-							p(msg[rnd(#msg)]);
+							p 'Звуки тишины прервали звуки другой тишины. Теперь ничего не слышно как и прежде.';
 						end;
 					end;
 					before_Kiss = 'Оно пыльное!';
@@ -301,12 +323,13 @@ room {
 			end;
 			before_Enter = function(s)
 				if s:once(mp.event) then
+					p 'Забравшись на стул, ты заметила стоящую на шкафу радиолу. Так вот откуда музыка!';
 					enable('kabinet_radio');
-					return false
+					move(pl, s);
 				else
 					return false
+				end;
 			end;
-		end;
 		}:attr 'scenery, supporter, enterable';
 		obj {
 			-"ножки стула|ножка стула";
@@ -437,16 +460,9 @@ room {
 				obj {
 					-"радиола";
 					nam = 'kabinet_radio';
-					description = 'Радиола. А на радиоле ещё что-то лежит. Хочется посмотреть, но не можешь - слишком высоко.';
+					description = 'Радиола. А на радиоле лежит какая-то страница.';
 					before_Take = 'Тебе не нужна радиола.';
 					before_Attack = 'Ага, упадет и мало не покажется!';
-					before_Listen = function(s)
-						if s:once(mp.event) then
-							p 'Тишина...';
-						else
-							p 'Звуки тишины прервали звуки другой тишины. Теперь ничего не слышно как и прежде.';
-						end;
-					end;
 					before_Kiss = function(s)
 						if s:once(mp.event) then
 							p 'Во-первых, радиола пыльная, во-вторых она высоко, а в третьих...Не хочешь.';
@@ -493,7 +509,27 @@ room {
 						};
 						p(msg[rnd(#msg)]);
 					end;
-				}:disable();
+					before_Receive = function(s,w)
+						p(w:Noun'им' .. ' не удержится на радиоле.');
+					end;
+					before_SwitchOn = function(s)
+						p('Она и так включена.');
+					end;
+					before_SwitchOff = function(s)
+						p('Зачем? Хорошая же музыка.');
+					end;
+				}:attr 'supporter':disable():with{
+					obj {
+						-"страница,бумага|листок бумаги,листок|ноты|мелодия";
+						nam = 'kabinet_notelist';
+						description = 'Страница, лежащая на радиоле.';
+						was_read = false;
+						["before_Take,Consult"] = function(s)
+							p 'Ты берёшь страницу и видишь, что на ней записаны ноты. Запомнив мелодию, ты кладёшь страницу обратно.';
+							s.was_read = true;
+						end;
+					}:attr 'static'
+				};
 				obj {
 					-"ножки шкафа|ножка шкафа";
 					nam = 'kabinet_shrankopiedo';
@@ -559,6 +595,8 @@ room {
 						};
 						p(msg[rnd(#msg)]);
 					end;
+					donated = false;
+					before_Search = 'Ты любуешься собой, пока не замечаешь отражение портрета капитана прямо за своей спиной. Такое ощущение, что он за тобой следит!';
 					before_Take = 'Ты не можешь взять зеркало.';
 					before_Attack = function(s)
 						if s:once(mp.event) then
@@ -585,23 +623,38 @@ room {
 					end;
 					before_Push = 'Нет. Пусть висит где висит.';
 					before_Taste = 'Несмотря на то, что в зеркало можно смотреться, это не делает его менее пыльным.';
-					before_Talk = 'Поговорить со своим отражением? Нет, для того, чтобы поговорить с самой собой тебе не обязательно нужен зрительный контакт.';
+					before_Talk = 'Возможно, стоит сказать своему отражению что-то конкретное.';
 					['before_Ask, Ask_to, AskFor, Tell'] = function(s,w)
-						if w:find "красное"  and w:find "море" and s:once(mp.event) then
+						if s.donated then
+							p 'Ты уже сказала зеркалу всё, что намеревалась.';
+							return true;
+						end;
+						if w:find "красное" and w:find "море" then
 							p 'Ты произнесла это и услышала за собой какой-то грохот. Что-то упало на пол.';
 							mp.score=mp.score+1;
 							enable('kabinet_falsajoponardo');
+							s.donated = true;
+						elseif w:find "красное" or w:find "море" then
+							p 'Нет реакции. Но ты чувствуешь, что уже близка к разгадке.';
+						elseif w:find "код" or w:find "пароль" then
+							p 'Ха-ха! Хорошая попытка.';
 						else
-							p 'Можно попробовать ещё что нибудь сказать своему отражению в зеркале...';
+							p 'Нет реакции. Но можно попробовать ещё что-нибудь сказать своему отражению в зеркале...';
+						end;
 					end;
-				end;
 					before_Enter = 'Попасть в зазеркалье? Замечательно! Но к твоему разочарованию, это невозможно.';
 				}:attr 'scenery';
 		}:attr 'scenery, supporter';
 		obj {
-			-"портрет|картина|изображение|рисунок|картинка";
+			-"портрет|картина|изображение|рисунок|картинка|пират,капитан,бандит/но";
 			nam = 'kabinet_bildo';
-			description = 'На картине изображен человек средних лет с цилиндром на голове, моноклем на одном глазу и характерными усами с завитушками.^ Интересно, кто это?';
+			description = function(s)
+				local v = '';
+				if _'kabinet_spegulo'.donated then
+					v = ' Лицо пирата исказила злобная гримаса!';
+				end;
+				return 'На картине изображен свирепый пиратский капитан, с рыжей бородой, повязкой на глазу и попугаем на плече.' .. v;
+			end;
 			before_Take = 'Тебе не нужна картина.';
 			before_Attack = function(s)
 				if s:once(mp.event) then
@@ -655,7 +708,7 @@ room {
 				obj {
 					-"картинное полотно|холст";
 					nam = 'kabinet_bildokanvaso';
-					description = 'Холст, на котором изображен человек средних лет с цилиндром на голове, моноклем на одном глазу и характерными усами с завитушками. Тебе кажется, что ты видела кого-то похожего, но можешь ошибаться.';
+					description = 'Холст, на котором изображен свирепый пиратский капитан.';
 					before_Take = 'Тебе не нужно это полотно. Пусть лучше висит.';
 					before_Attack = 'Не стоит.';
 					before_Listen = 'Звуки холста...';
@@ -1006,6 +1059,11 @@ room {
 			before_Open = 'Это невозможно.';
 			before_Eat = 'Тебе не хочется есть обои.';
 			before_Enter = 'Ты решаешь не устраивать поиски тайного рычага, открывающего двери в мир потаенного.';
+		}:attr 'scenery';
+		obj {
+			-"музыка";
+			nam = 'kabinet_fonmusic';
+			description = 'Осмотреть музыку? Оригинально.';
 		}:attr 'scenery';
 }
 
