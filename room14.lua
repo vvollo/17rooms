@@ -120,7 +120,10 @@ room {
 		end
 
 	end;
-	before_Attack = function(s)
+	before_Attack = function(s, w)
+		if w == _'room16_witch' then
+			return false
+		end
 		p"Ты не собираешься ничего ломать в доме тёти. Конечно, ты немного ей завидуешь, но не настолько.";
 	end;
 	before_Walk = function(s, ev)
