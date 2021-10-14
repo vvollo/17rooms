@@ -568,7 +568,7 @@ obj {
 	description = "Роскошный персидский ковёр с длинным ворсом, занимающий половину коридора. Мягкий, полностью заглушающий шаги, в отличии от паркета.";
 	moving = false;
 	scope = {};
-	['before_Take,Push,Pull,Turn'] = function(s)
+	['before_Take,Push,Pull,Turn,LookUnder'] = function(s)
 		if _"room14_drawer".moving == true then
 			p"Ковёр невозможно сдвинуть, пока на нём стоит тяжёлый комод";
 		else
@@ -585,15 +585,11 @@ obj {
 			end
 		end
 	end;
-	before_LookUnder = function(s)
-		if not s.moving then
-			p"Ковёр слишком плотно прилегает к полу, ничего не разглядеть.";
-		else
-			p"Нет необходимости. Край ковра уже откинут.";
-		end;
-	end;
 	['before_Walk,Enter'] = function(s)
 		p"Это бессмысленно. Ты и так стоишь на ковре на полу.";
+	end;
+	['before_Tear,Cut'] = function(s,w)
+		p"Зачем? Ковёр же не прибит к полу.";
 	end;
 	--before_Receive = function(s, w)
 	--	if _"room14_carpet".moving == true then
