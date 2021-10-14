@@ -155,7 +155,7 @@ obj {
 	before_Tear = function(s)
 		s:tearApart("разрываешь");
 	end;
-	before_Attack = function(s)
+	["before_Attack,Search"] = function(s)
 		s:tearApart("разламываешь");
 	end;
 	before_Cut = function(s, w)
@@ -166,6 +166,8 @@ obj {
         	mp:check_held(w);
         	if w ~= nil then
         		if w ^ "dagger" then
+                		return false;
+        		elseif w ^ "kitchen_knife" then
 				s:tearApart("разрезаешь");
                 		return true;
         		else
@@ -181,7 +183,7 @@ obj {
 		mp.score=mp.score+1;
 		remove(s);
 	end;
-	before_Take = "Таскать с собой повсюду муляж булочки? Этого еще не хватало! Пусть лежит где лежит.";
+	before_Take = "Таскать с собой повсюду муляж булочки? Этого еще не хватало! Пусть лежит где лежит.^^Тем не менее, ты отмечаешь, что булочка тяжелее, чем кажется на вид.";
 }: dict {
 	["кайзерка/вн"] = "кайзерку";
 	["кайзерка/рд"] = "кайзерки";
