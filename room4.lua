@@ -95,6 +95,7 @@ room {
 			if not s.seen then
 			   if where("room4_sapfir") ^ "room4_dolphin" and where("room4_rybin") ^ "room4_crab" and where("room4_izymryd") ^ "room4_frog" then
 				  s.seen = true
+				  island_drop_items()
 				  move(me(), "room4_kladovka")
 				  disable("room4_dolphin")
 				  disable("room4_crab")
@@ -196,6 +197,17 @@ function mermaid_sing()
 			song = 1
 	end
 	return "Раздаётся завораживающая песня русалки:^"..songs[song]
+end
+
+-- перенести все брошенные на острове вещи в кладовку
+function island_drop_items()
+	local oo = {}
+	mp:objects(pl:where(), oo)
+	for _, o in ipairs(oo) do
+		if o:hasnt'static' and o:hasnt'scenery' and o:hasnt'concealed' and not mp:animate(o) and not mp:partof(o) and not o:inside("room4_kladovka") then
+			move(o, "room4_kladovka")
+		end
+	end
 end
 
 room {
