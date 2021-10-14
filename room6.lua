@@ -59,15 +59,6 @@ room {
     obj = {'longkey'};
 }
 
--- ## BLOCKER BUGS
--- [x] отобрать все kitchen предметы при выходе из комнаты
--- история-награда
---   про потерю хозяйкой девственности?
-
--- ## IMPORTANT
-
--- ## TEXT WANTED
-
 -- ## OPTIONAL / NICE TO HAVE
 -- cut walls with knife
 -- обозлённый дед может триггернуть лифт наверх в момент когда сделаешь бутерброд
@@ -81,10 +72,6 @@ room {
 -- дед периодически напоминает о задании
 
 function kitchen_drop_items()
-    if inside('kitchen_knife', pl) then
-        p"Ты кладёшь нож обратно на столешницу.";
-        move('kitchen_knife', 'kitchen_main_table');
-    end;
     if inside('kitchen_avocado', pl) then
         p"Ты кладёшь авокадо обратно в корзину.";
         move('kitchen_avocado', 'kitchen_basket');
@@ -96,6 +83,7 @@ function kitchen_drop_items()
     if inside('kitchen_bread', pl) then
         p"Ты кладёшь хлеб обратно в хлебницу.";
         move('kitchen_bread', 'kitchen_breadbox');
+        _'kitchen_breadbox':attr('~open');
     end;
     if inside('kitchen_bread_piece', pl) then
         p"Ты кладёшь кусок хлеба на столешницу.";
@@ -117,7 +105,7 @@ function kitchen_drop_items()
 end;
 
 door {
-    -"дверь в кладовку,восточная дверь,облупившаяся дверь,дверь/жр,ед";
+    -"дверь,дверь в кладовку,восточная дверь,облупившаяся дверь/жр,ед";
     nam = "kitchen_door_west";
     door_to = function(s, d)
         kitchen_drop_items()
@@ -129,7 +117,7 @@ door {
         mp.score=mp.score+1;
         p"Ты отпираешь дверь в кладовку длинным ключом. Ключ тебе больше не понадобится, так что ты оставляешь его в скважине.";
     end;
-}: attr 'concealed,closed,openable,locked,lockable,static';
+}: attr 'concealed,openable,locked,lockable,static';
 
 door {
     -"дверь в столовую,северная дверь,белая дверь,дверь/жр,ед,~од";
@@ -249,7 +237,7 @@ obj {
     end;
     before_Take = "Она слишком громоздка, чтобы носить с собой. Да и зачем она тебе?";
     obj = {'kitchen_bread'};
-}:attr 'static,container,openable,closed';
+}:attr 'static,container,openable,~open';
 
 obj {
     -"буханка чёрного хлеба,буханка|чёрный хлеб,хлеб/но";
@@ -279,9 +267,11 @@ obj {
         mp:check_held(w);
         if w ~= nil then
             if w ^ "kitchen_knife" then
-                p"Ты отрезаешь кусок хлеба.";
+                p"Ты отрезаешь кусок хлеба и кладёшь буханку обратно в хлебницу.";
                 s.was_cut = true;
                 move('kitchen_bread_piece', me());
+                move('kitchen_bread', 'kitchen_breadbox');
+                _'kitchen_breadbox':attr('~open');
                 return true;
 	    elseif w ^ "dagger" then
                 p"Здесь есть более подходящий для этого инструмент.";
@@ -358,6 +348,7 @@ obj {
             else
                 p"Он закрыт.";
             end;
+            p "Справа от лифта кнопки вверх и вниз.";
         end;
     end;
     before_Enter = "Он недостаточно большой, чтобы в него забраться.";
@@ -381,7 +372,7 @@ obj {
         return false;
     end;
     after_Open = "Ты открываешь дверцу лифта.";
-}:attr 'static,container,openable,closed';
+}:attr 'static,container,openable,~open';
 
 obj {
     -"кнопка вверх,кнопка наверх,кнопка|наверх,вверх";
