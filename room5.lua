@@ -4,17 +4,19 @@
 room {
 	nam = "room5_podval";
 	title = "Подвал";
-	dsc = function(s)
---	    if (s :has 'light') then
-			p "Страшная подвальная комната. Рядом со входом ржавый вентиль с веревкой. "
---		else
---			p "Темно, хоть глаз выколи. Тебе удалось нащупать вентиль на стене и верёвку, свисающую с потолка."
---		end
-	end;
-	dark_dsc = "Темно, хоть глаз выколи. Тебе удалось нащупать вентиль на стене и верёвку, свисающую с потолка.";
+	dsc = "Страшная подвальная комната. Рядом со входом ржавый вентиль с веревкой.";
+	dark_dsc = "Темно, хоть глаз выколи.";
 	u_to = 'room4_kladovka';
+	out_to = 'room4_kladovka';
 	before_Listen = "Ничего не слышно.";
 	before_Smell = "Ничем не пахнет.";
+	before_Tie = function(s, w, wh)
+		if wh == _'room5_verev' and w ~= _'room5_ventil' then
+			mp:xaction('PutOn', w, wh);
+		else
+			return false;
+		end
+	end;
 	obj = { 'room5_verev', 'room5_ventil','room5_podval_decor', 'room5_stena' };
 }: attr '~light'
 
@@ -39,19 +41,33 @@ obj {
    	-"упавшая дверь|дверь",
 	nam = 'room5_fall_door';
 	description = "Упавшая дверь больше не представляет для тебя интереса.";
-}: attr 'scenery'
+	dsc = "На полу валяется дверь.";
+	before_Take = function(s)
+		p "Ты не хочешь таскать с собой дверь."
+		return true
+	end;
+}: attr 'static'
 
 obj {
 	-"небольшая коробка|коробка";
 	nam = 'room5_korob';
+	dsc = function(s)
+		pr 'В проёме видна небольшая коробка. ';
+		mp:content(s);
+	end;
+	before_Take = function(s)
+		p "Тебе не нужна коробка."
+		return true
+	end;
 	obj = { 'piramidekey' };
-}: attr 'scenery,container,open'
+}: attr 'static,container,open'
 
 obj {
    	-"потолок|потолочная ниша|ниша",
 	nam = 'room5_nisha';
 	description = "Ниша в потолке излучает яркий свет, словно прожектор. Видны летающие частицы пыли.";
-}: attr 'scenery'
+	dsc = "Свет проникает в комнату через нишу в потолке.";
+}: attr 'static'
 
 obj {
    	-"потайная дверь,дверь|кольцо|ручка двери|ручка",
@@ -67,7 +83,7 @@ obj {
 		p("Дверь раскрылась на половину ступни.")
 		end
 	end;
-	before_Open = function(s)
+	["before_Open,Pull"] = function(s)
 	   if (s.val_open == 0) then
 	      p("С большим усилием ты потянула за ручку двери и она немного приоткрылась, оставив щёлочку.")
 	      s.val_open = 1
@@ -76,16 +92,7 @@ obj {
 	   end
 	   return true
 	end;
-	before_Pull = function(s)
-	   if (s.val_open == 0) then
-	      p("С большим усилием ты потянула за ручку двери и она немного приоткрылась, оставив щёлочку.")
-	      s.val_open = 1
-	   else
-	      p("Как ты ни пыталась тянуть ручку, дверь не поддавалась. Пройти пока невозможно.")
-	   end
-	   return true
-	end;
-	before_Push = function(s)
+	["before_Close,Push"] = function(s)
 	   if (s.val_open == 0) then
 	      p("Ты не понимаешь, зачем тебе толкать дверь.")
 	   elseif (s.val_open == 1) then
@@ -127,40 +134,33 @@ obj {
    	-"ровная трещина,подозрительная трещина,тонкая трещина,пыльная трещина,трещина|прямоугольник",
 	nam = 'room5_tres';
 	description = "Трещина на стене тонкая и подозрительно ровная, образует прямоугольник около двух метров в высоту и метра в ширину. Какая же она пыльная!";
+	dsc = "Стена пошла трещиной.";
 	before_Touch = function(s)
-		p("Немного потрогав края трещины, ты обнаружила, что это потайная дверь! Чуточку усердия в очистке и дело в шляпе.")
-                mp.score=mp.score+1;
-		move(s,'room5_reserve')
-		move(_'room5_door','room5_podval')
-		return true
+		s:tearApart("потрогав края трещины")
 	end;
 	before_Blow = function(s)
-		p("Немного подув на трещину, ты обнаружила, что это потайная дверь! Чуточку усердия в очистке и дело в шляпе.")
-                mp.score=mp.score+1;
-		move(s,'room5_reserve')
-		move(_'room5_door','room5_podval')
-		return true
+		s:tearApart("подув на трещину")
 	end;
 	before_Rub = function(s)
-		p("Немного потерев трещину, ты обнаружила, что это потайная дверь! Чуточку усердия в очистке и дело в шляпе.")
-                mp.score=mp.score+1;
-		move(s,'room5_reserve')
-		move(_'room5_door','room5_podval')
-		return true
+		s:tearApart("потерев трещину")
 	end;
 	before_Attack = function(s)
-		p("Немного постучав по трещине, ты обнаружила, что это потайная дверь! Чуточку усердия в очистке и дело в шляпе.")
+		s:tearApart("постучав по трещине")
+	end;
+	tearApart = function(s, t)
+		p("Немного " .. t .. ", ты обнаружила, что это потайная дверь! Чуточку усердия в очистке и дело в шляпе.")
                 mp.score=mp.score+1;
 		move(s,'room5_reserve')
 		move(_'room5_door','room5_podval')
 		return true
 	end;
-}: attr 'scenery'
+}: attr 'static'
 
 
 obj {
 	-"веревка|жгут",
 	nam = 'room5_verev';
+	dsc = false;
 	blind_desc = "На ощупь эластичный жгут, не очень толстый.";
 	light_desc = "Грязная веревка, свисает с какой-то ниши в потолке.";
 	is_tied = false;
@@ -186,28 +186,34 @@ obj {
 		p "Ты потянула жгут на себя и где-то наверху мелькнул свет. К сожалению, жгут оказался слишком тугим и вырвался из рук. Свет погас."
 		return true
 	end;
-	before_Climb = function(s)
+	["before_Climb,Enter"] = function(s)
 		p "В школе у тебя был трояк по физкультуре. Не очень приятное воспоминание, но что поделать. Хотя может в этом что-то есть."
 		return true
 	end;
 	before_Tie = function(s,w)
-	    if (s.is_tied) then
-			p "Ты уже надежно привязала к вентилю, всё в порядке!"
-			return true
-	    elseif (w==_'room5_ventil') then
-			p "Получилось! Хоть узлы не забыла как вязать."
-			mp.score=mp.score+1;
-			s.is_tied = true
-			return true
+		if w == _'room5_ventil' then
+			if (s.is_tied) then
+				p "Ты уже надежно привязала к вентилю, всё в порядке!"
+				return true
+			else
+				p "Получилось! Хоть узлы не забыла как вязать."
+				mp.score=mp.score+1;
+				s.is_tied = true
+				return true
+			end
 		else
 			return false
 		end;
 	end;
-}: attr 'scenery,luminous'
+	before_Receive = function(s,w)
+		p "Для успеха этой затеи нужно повесить предмет, который тяжелее тебя. Лучше придумать что-нибудь другое."
+	end;
+}: attr 'static,supporter'
 
 obj {
 	-"большой вентиль,ржавый вентиль,мерзкий вентиль,вентиль",
 	nam = 'room5_ventil';
+	dsc = false;
 	numturns = 0;
 	is_fixed = false;
 	light_desc = "Мерзкий ржавый вентиль с островками облупившейся краски.";
@@ -230,7 +236,7 @@ obj {
 		p(s.blind_desc)
 		return true
 	end;
-	before_Turn = function(s)
+	["before_Turn,Open,Push,Pull"] = function(s)
 	    if (_'room5_verev'.is_tied == false) then
 			p "С очень большим трудом вентиль поддался. Такое ощущение, что им всё-таки иногда пользуются. Но, никакой реакции"
 		else
@@ -240,7 +246,6 @@ obj {
 					_'room5_podval':attr'light'
 					s.numturns = 3;
 				elseif (s.numturns < 5) then
-					p "Вентиль провернулся намного легче."
 					s.numturns = s.numturns+2;
 					if (s.numturns >= 5) then
 						p "Вентиль начал закручиваться сам по себе! Верёвка максимально натянулась и с потолка раздался грохот. Такое ощущение, что стены содрогнулись! "
@@ -248,6 +253,8 @@ obj {
 						move(_'room5_tres','room5_podval')
 						s.is_fixed = true
                                                 mp.score=mp.score+1;
+					else
+						p "Вентиль провернулся намного легче."
 					end
 				end
 			else
@@ -255,6 +262,22 @@ obj {
 			end
 		end
 		return true
+	end;
+	before_Tie = function(s,w)
+		if w == _'room5_verev' then
+			mp:xaction('Tie', w, s)
+		else
+			return false
+		end
+	end;
+	before_Close = function(s)
+		if (s.numturns == 0) then
+			p "Он и так закрыт."
+		elseif not s.is_fixed then
+			p "Он сам того и гляди закрутится."
+		else
+			p "После того, как ты его с таким трудом открутила? Нет уж."
+		end
 	end;
 	each_turn = function(s)
 		if (s.is_fixed == false) and (s.numturns > 0) then
@@ -264,6 +287,6 @@ obj {
 			   _'room5_podval':attr'~light'
 			end
 		end
-	end
-}: attr 'scenery,luminous'
+	end;
+}: attr 'static'
 
