@@ -1059,6 +1059,7 @@ obj {
 	game = 0;
 	win = 0;
 	daemon_stage = 0;
+	daemon_dop = 0;
 	describe = function()
 		if(_'room16_a1'.state == 1) then
 			p('На поле А1 стоит крестик.')
@@ -1463,7 +1464,7 @@ obj {
 		_'room16_wardrobe'.state = 3
 		_'room16_wardrobe':attr 'open'
 		_'room16_wardrobe':attr 'enterable'
-		move(_'room16_witch',_'room16_mystical')
+		enable('room16_witch')
 		move(_'room16_wall',_'room16_mystical')
 		DaemonStart 'room16_AI'
 	end;
@@ -1532,7 +1533,13 @@ obj {
 			p (' -- Заусенец проклятый! Вот и ты, Настенька, как заусенец у меня в пальце сейчас: и жалко, и противно!')		
 		end;
 		if(_'room16_AI'.daemon_stage == 4) then
-			p (' -- Ну ладно, готово.')		
+			if s.daemon_dop == 0 then
+				p (' -- Ну ладно, готово.')
+			elseif s.daemon_dop == 1 then
+				p (' -- Ты лишь оттягиваешь неизбежное, Настенька.')
+			else
+				p (' -- Ха, бежать тебе некуда! -- торжествующе вопит тётя.')
+			end;
 		end;
 		if(_'room16_AI'.daemon_stage == 5) then
 			DaemonStop 'room16_AI';
@@ -1540,7 +1547,11 @@ obj {
 		end;
 		if(_'room16_AI'.daemon_stage == 6) then
 			DaemonStop 'room16_AI';
-			walk 'room16_cutsceneC'
+			if pl:where() ^ 'room16_mystical' then
+				walk 'room16_cutsceneC'
+			else
+				walk 'room16_cutsceneC_out'
+			end;
 		end;
 		if(_'room16_AI'.daemon_stage == 7) then
 			DaemonStop 'room16_AI';
@@ -1548,7 +1559,11 @@ obj {
 		end;
 		if(_'room16_AI'.daemon_stage == 8) then
 			DaemonStop 'room16_AI';
-			walk 'room16_cutsceneE'
+			if not (pl:where() ^ 'room1_kryltco' or pl:where() ^ 'room2_terassa' or pl:where() ^ 'room2_on_terrasa') then
+				walk 'room16_cutsceneE'
+			else
+				walk 'room16_cutsceneE_out'
+			end;
 		end;
 		if(_'room16_AI'.daemon_stage == 9) then
 			DaemonStop 'room16_AI';
@@ -1684,6 +1699,17 @@ cutscene {
 }
 
 cutscene {
+	nam = 'room16_cutsceneC_out';
+	text = {
+		"Вместо того, чтобы убегать, ты решаешь встретить тётю лицом к лицу.";
+		"Плохая идея. Тётя оказывается ловчее, и одним махом прыгает на тебя, сбивая с ног.";
+		"Она вонзает свои когти тебе в живот, а клыками впивается в шею.";
+		"Ты даже не успеваешь пожалеть о том, что приехала в дом к своей тёте.";
+	};
+	next_to = 'room16_happyend';
+}
+
+cutscene {
 	nam = 'room16_cutsceneD';
 	text = {
 		"Как сумасшедшая, ты бежишь на тётю с твёрдым намерением её зарезать.";
@@ -1703,6 +1729,20 @@ cutscene {
 		" -- Какой-то нелепый конец, -- думаешь ты вслух.";
 		"Теперь придётся как-то объясняться с полицией. Вряд ли они поверят, что ты укокошила тётю не ради наследства.";
 		"Твой взгляд падает на щель под потолком.";
+		"Закатный луч падает на тебя в ответ.";
+	};
+	next_to = 'room16_badend';
+}
+
+cutscene {
+	nam = 'room16_cutsceneE_out';
+	text = {
+		"Ты берёшь кинжал за лезвие, как это делают циркачи.";
+		"Тётя всё ковыряет свои когти и даже не замечает, как ты прицеливаешься.";
+		"Один бросок -- и кинжал по самую рукоять уходит куда-то в тёткины лохмотья, а она падает на землю замертво.";
+		" -- Какой-то нелепый конец, -- думаешь ты вслух.";
+		"Теперь придётся как-то объясняться с полицией. Вряд ли они поверят, что ты укокошила тётю не ради наследства.";
+		"Твой взгляд падает на небо.";
 		"Закатный луч падает на тебя в ответ.";
 	};
 	next_to = 'room16_badend';
@@ -1735,10 +1775,21 @@ cutscene {
 obj {
 	-"тётушка,тётушка,тётка,тётя,Агата,тётушка Агата*";
 	nam = 'room16_witch';
-	dsc = 'Тётушка сидит на пюпитре и точит когти.';
+	dsc = function(s)
+		if pl:where() ^ 'room16_mystical' then
+			return 'Тётушка сидит на пюпитре и точит когти.';
+		else
+			return 'Тётушка преследует тебя, продолжая точить когти на ходу.';
+		end;
+	end;
 	description = 'Тётушка Агата одета в какие-то лохмотья. Она точит когти, скалит зубы, хлюпает носом, сверкает глазами и время от времени шевелит ушами.';
+	found_in = {'room1_kryltco', 'room2_terassa', 'room2_on_terrasa', 'room3_hall', 'room4_kladovka', 'room5_podval', 'room6_kitchen', 'room7_stolovaya', 'room8_garderob', 'room9_garazh', 'room10_zal', 'room11_kabinet', 'room12_gostinnaya', 'room13_library', 'room14_secondfloor', 'room15_bedroom', 'room16_mystical', 'room17_cherdak'};
 	before_ThrownAt = function(s,w)
 		if(w == _'dagger') then
+			if _'room12_ноутбук'.broken then
+				p 'Ну убьёшь ты сейчас тётю, и что? Не она -- источник всех проблем.'
+				return
+			end;
 			_'room16_AI'.daemon_stage = 8
 		else
 			p 'Ты серьёзно?'	
@@ -1815,7 +1866,7 @@ obj {
 			description = [[Когда-то это было что-то приличное, но теперь...]];
 		};
 	}
-}:attr 'animate'
+}:disable():attr 'animate,luminous'
 
 obj {
 	-"стены";
