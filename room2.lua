@@ -229,7 +229,10 @@ room2_room {
 	title = function()
 		return _'room2_s'.pl_high == 0 and "на террасе" or "на террасе (в мире ярких красок)"
 	end;
-	dsc = "Тут тенисто и прохладно — плющ защищает пространство от зноя. В дом ведёт широкая, двустворчатая дверь. По обеим сторонам от неё стоят застеклённые шкафы с заметными табличками на них. Левый с табличкой «Саргассово море», правый — «Экспедиция в Такла-Макан».^Выход с террасы — на север, вниз по ступеням.";
+	dsc = function(s)
+		local _stoneshine = isDaemon('room16_AI') and "Ты выбегаешь на террасу и замечаешь, что мерцание камня стало особенно ярким.^^" or "";
+		return _stoneshine .. "Тут тенисто и прохладно — плющ защищает пространство от зноя. В дом ведёт широкая, двустворчатая дверь. По обеим сторонам от неё стоят застеклённые шкафы с заметными табличками на них. Левый с табличкой «Саргассово море», правый — «Экспедиция в Такла-Макан».^Выход с террасы — на север, вниз по ступеням.";
+	end;
 	s_to = 'room2_door',
 	n_to = function(s)
 		if not _'room2_s'.has_noticed_key and where(_'room2_smt_shiny') ^ 'room2_terassa' and _'room2_right_cabinet':has('open') then
@@ -247,6 +250,10 @@ door {
 	nam = "room2_door";
 	door_to = function()
 		room2_sober()
+		if not _'room2_black_rock':where() ^ 'room2_right_cabinet' then
+			DaemonStop 'room16_AI';
+			return 'room12_cutsceneStone'
+		end;
 		return 'room12_gostinnaya' -- НУЖНО ПОДСТАВИТЬ НУЖНУЮ КОМНАТУ !!!
 	end;
 	when_locked = [[Здесь есть закрытая дверь.]];
@@ -644,7 +651,8 @@ obj {
 	nam = 'room2_right_cabinet',
 	description = function(s)
 		local _txt = s:has'open' and "открытый" or "закрытый"
-		return "Справа от двери — ".._txt.." шкаф с табличкой «Экспедиция в Такла-Макан». Описание гласит, что экспонаты в нём связаны с секретной советской экспедицией 1946 года на северо-запад Китая. Больше всего тебя заинтересовали: карта с маршрутом экспедиции, альбом с фотографиями и обломок чёрного камня."
+		local _stonehere = _'room2_black_rock':where() ^ s and "" or " (которого здесь уже нет)"
+		return "Справа от двери — ".._txt.." шкаф с табличкой «Экспедиция в Такла-Макан». Описание гласит, что экспонаты в нём связаны с секретной советской экспедицией 1946 года на северо-запад Китая. Больше всего тебя заинтересовали: карта с маршрутом экспедиции, альбом с фотографиями и обломок чёрного камня" .. _stonehere .. "."
 	end;
 	before_LetIn = "Не нужно в шкаф ничего совать — всё необходимое в нём уже есть.";
 	before_Open = function(s)
@@ -701,8 +709,11 @@ cutscene {
 room2_Exhibit {
 	-"обломок чёрного камня,кусок,чёрный,камень,кусок,обломок";
 	nam = "room2_black_rock";
+	dsc = "На полу лежит обломок камня и светится красным пульсирующим светом.";
 	description = function(s)
-		if _'room2_s'.pl_high == 0 then
+		if not s:where() ^ 'room2_right_cabinet' then
+			return "Этот камень -- чистое Зло! Его нужно уничтожить!"
+		elseif _'room2_s'.pl_high == 0 then
 			return "Небольшой — с твой кулак — обломок совершенно чёрного камня непонятной породы. Мог бы быть углём, однако, в отличие от антрацитов совершенно не отражает света."
 		else
 			if _'room2_album'.page == 6 then 
@@ -731,6 +742,9 @@ room2_Exhibit {
 			p(s:Noun 'им', " — экспонат. Пусть лучше {#word/оставаться,#first,нст} на месте.");
 			return true;
 		end;
+		if not s:where() ^ 'room2_right_cabinet' then
+			return false;
+		end;
 		s:destroyEvilStone();
 	end;
 	["before_Cut,Tear,Attack,ThrownAt"] = function(s, w)
@@ -753,8 +767,22 @@ room2_Exhibit {
 		end;
 	end;
 	destroyEvilStone = function(s, w)
-		p [[Ты чувствуешь в камне Зло и хочешь его уничтожить. Но твоя рука дрожит и пальцы не слушаются.^
-		В мерцании камня тебе чудится злорадство.]];
+		if not isDaemon('room16_AI') then
+			p [[Ты чувствуешь в камне Зло и хочешь его уничтожить. Но твоя рука дрожит и пальцы не слушаются.^
+			В мерцании камня тебе чудится злорадство.]];
+		elseif not w then
+			p "Ты хватаешь камень и охаешь. Он как будто раскалённый! Тётка, уже собиравшаяся наброситься на тебя, слегка отшатывается. Однако, не удержав камень в руках, ты его роняешь, и он залетает в дом через открытую дверь.";
+			move(s, 'room12_gostinnaya');
+			s:attr'~static';
+			_'room16_AI'.daemon_stage = 4;
+			_'room16_AI'.daemon_dop = 1;
+		elseif s:where() ^ 'room2_right_cabinet' then
+			DaemonStop 'room16_AI';
+			walk 'ending_evil';
+		else
+			DaemonStop 'room16_AI';
+			walk 'ending_evil_2';
+		end;
 	end;
 	before_Default = function(s, ev, w)
 		if not _'room2_s'.been_on_high then
