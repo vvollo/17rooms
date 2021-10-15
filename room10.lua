@@ -125,6 +125,7 @@ room {
 			-"сейф,тайник";
 			nam = '#safe';
 			title = [[В сейфе]];
+			score = false;
 			description = function(s)
 				if s:has'open' then
 					p [[Сейф открыт!]]
@@ -132,6 +133,13 @@ room {
 					return
 				end
 				p [[На сейфе нет никаких признаков замка или кодовых ручек.]]
+			end;
+			after_Open = function(s)
+				if not s.score then
+					mp.score=mp.score+1;
+					s.score = true;
+				end;
+				return false;
 			end;
 			before_Close = function(s)
 				if me():where() == s and s:has'open' then
