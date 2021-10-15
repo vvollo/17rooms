@@ -178,20 +178,16 @@ obj {
 	found_in = { 'room17_cornice' };
 }:disable():attr 'clothing'
 
-obj {
+door {
 	-"дверца";
 	nam = "room17_door";
 	description = function(s)
-		p "Маленькая дверца.";
+		p "Маленькая дверца. В дверце находится замочная скважина. ";
+		mp:content(_"room17_keyhole");
 		return false;
---		mp:content(s);
 	end;
-	before_Unlock = function(s, w)
-		p [[Не получается.]]
-	end;
-	before_Open = function(s, w)
-		p [[Заперто.]]
-	end;
+	door_to = 'emptyroom';
+	with_key = 'emptyroom';
 	obj = {
 		obj {
             -"замочная скважина,скважина";
@@ -210,7 +206,7 @@ obj {
 			end;
         }:attr 'static,scenery';
 	};
-}:disable():attr 'container,static, open'
+}:disable():attr 'static,openable,lockable,locked'
 
 obj {
 	-"записка,лист бумаги";
