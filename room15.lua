@@ -23,6 +23,7 @@ room {
 	complete = false;
 
 	lampon = false;
+	sleep_score = false;
 
 	["before_Push,Pull,Turn,SwitchOn,SwitchOff,Take,Insert,Remove,Eat,Taste,Drink,Rub,Touch,Kiss,Open,Close"] = function(s, w)
 		if pl:where()^'room15_bedroom' or w == nil or w:where() == nil or pl:where()^'room15_bed' and w^'room15_lamp' or pl:where()^'room15_void' and w:where()^'room15_void' then
@@ -135,6 +136,10 @@ room {
 				put('room15_void', 'room15_bedroom');
 				pr 'Ты быстро погружаешься в сон. Через какое-то время ты просыпаешься от ощущения, что в комнате что-то не так. ';
 				pl:need_scene(true);
+				if not s.sleep_score then
+					mp.score=mp.score+1;
+					s.sleep_score = true;
+				end;
 			else
 				pr('Ты долго ворочаешься, но никак не можешь уснуть. тебе кажется, что кто-то есть под кроватью! ');
 			end;
