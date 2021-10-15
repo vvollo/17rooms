@@ -1,6 +1,7 @@
 room {
 	nam = "room11_kabinet";
 	title = "Кабинет";
+	play_score = false;
 	dsc = function(s)
 		if not isDaemon('kabinet_fenestro') then
 			if s:once() then
@@ -40,6 +41,10 @@ room {
 	end;
 	before_Play = function(s,w)
 		if w == _'room4_fluet' and _'kabinet_notelist'.was_read then
+			if not s.play_score then
+				mp.score=mp.score+1;
+				s.play_score = true;
+			end;
 			p [[Ты играешь на флейте запомненную мелодию. Раздаётся завораживающая песня русалки:^
 				Свирепый пират исходил все моря,^
 				Лишь в месте одном не бросал якоря.^
@@ -326,6 +331,7 @@ room {
 					p 'Забравшись на стул, ты заметила стоящую на шкафу радиолу. Так вот откуда музыка!';
 					enable('kabinet_radio');
 					move(pl, s);
+					mp.score=mp.score+1;
 				else
 					return false
 				end;
@@ -518,7 +524,7 @@ room {
 					before_SwitchOff = function(s)
 						p('Зачем? Хорошая же музыка.');
 					end;
-				}:attr 'supporter':disable():with{
+				}:attr 'static,supporter':disable():with{
 					obj {
 						-"страница,бумага|листок бумаги,листок|ноты|мелодия";
 						nam = 'kabinet_notelist';
