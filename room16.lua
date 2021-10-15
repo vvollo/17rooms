@@ -3,6 +3,7 @@ room {
 	title = "Таинственная комната";
 	firsttime = 1;
 	state = 0;
+	exit_score = false;
 	dsc = function(s)
 		if s.state == 0 then
 			if s.firsttime == 1 then
@@ -69,6 +70,10 @@ room {
 			end;
 			if (w^'@e_to') then
 				DaemonStop 'room16_AI';
+				if not s.exit_score then
+					mp.score=mp.score+1;
+					s.exit_score = true;
+				end;
 				walk 'room16_cutsceneRun';
 			elseif w^'@out_to' and (_'room16_wall'.state == 3) then
 				_'room16_AI'.daemon_stage = 9
@@ -1898,17 +1903,14 @@ obj {
 				p 'Ты расковыриваешь огромную дыру: четвёртая стена разрушена!'
 				s:attr 'enterable'
 				s:attr 'open'
-                                mp.score=mp.score+1;
 				s.state = 3
 			end;
 			if(s.state == 1) then
 				p 'Ты продолжаешь рушить стену, и в ней уже образовалась дырка размером с твою голову. Ты могла бы попробовать сбежать, но всё, кроме головы, будет торчать на виду у тёти Агаты.'
-                                mp.score=mp.score+1;
 				s.state = 2
 			end;
 			if(s.state == 0) then
 				p 'Ты нервно ковыряешь стену кинжалом, пока тётка точит когти и не смотрит на тебя. Постепенно, стена начинает рушиться.'
-                                mp.score=mp.score+1;
 				s.state = 1
 			end;
 		else
