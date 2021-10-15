@@ -92,6 +92,7 @@ room {
 	before_ThrowAt = function(s,w,dir)
 		if w == _'room2_black_rock' and (dir^'@s_to' or dir^'room12_sun') then
 			DaemonStop 'room16_AI';
+			mp.score=mp.score+5;
 			walk 'ending_trueend';
 		elseif w == _'room2_black_rock' and (dir^'@n_to' or dir^'@w_to' or dir^'@e_to' or dir^'room12_decor' or dir^'room12_stranga') then
 			p 'Мысль правильная, направление нет.';
