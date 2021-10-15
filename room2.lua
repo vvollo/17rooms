@@ -658,6 +658,7 @@ obj {
 	before_Open = function(s)
 		if s:has('~open') then
 			s:attr('open');
+			mp.score=mp.score+1;
 			walkin('room2_opened_cabinet');
 		else
 			return false;
@@ -776,6 +777,7 @@ room2_Exhibit {
 			s:attr'~static';
 			_'room16_AI'.daemon_stage = 4;
 			_'room16_AI'.daemon_dop = 1;
+			mp.score=mp.score+1;
 		elseif s:where() ^ 'room2_right_cabinet' then
 			DaemonStop 'room16_AI';
 			walk 'ending_evil';
@@ -954,6 +956,7 @@ room2_Exhibit {
 		room2_Photo {
 			-"фотография|страница|фото";
 			nam = "room2_album_8";
+			score = false;
 			pageDsc = function()
 				if _'room2_s'.pl_high == 0 then
 					if _'room2_album_8':hasnt'seen_on_high' then
@@ -962,6 +965,10 @@ room2_Exhibit {
 						return "    Фотография опять смазанная и нечёткая. Ты уже не уверена, что тебе не привиделась та ужасная картина."
 					end
 				else
+					if not _'room2_album_8'.score then
+						mp.score=mp.score+1;
+						_'room2_album_8'.score = true;
+					end;
 					return "    Фотография сделана в замкнутом помещении с чёрными стенами, полом и потолком. Все восемь участников экспедиции стоят перед объективом. Совершенно голые, с залитыми кровью плечами, они держат собственные головы в вытянутых вперёд руках. Глаза распахнуты в ужасе, рты перекошены в безмолвном крике.^^Камень вспыхивает изнутри красным светом."
 				end
 			end
