@@ -180,6 +180,14 @@ room {
           end;
         end;
 
+	before_Remove = function(s,w,wh)
+		-- правильная отработка команд "взять что-то из гаража/пола/тисков/шкафа"
+		if wh == _'room9_no_гараж' or wh == _'room9_no_пол' or wh == _'room9_no_тиски' or wh == _'room9_no_шкаф' then
+			mp:xaction('Take', w);
+		else
+			return false;
+		end;
+	end;
 	before_Listen = "Ты слышишь гулкий ритмичный звук - то ли это живые мертвецы стучат, то ли это стук твоего сердца.";
 	before_Smell = "Дело пахнет керосином.";
 	obj = { 'room9_no_гараж', 'room9_no_люк', 'room9_o1', 'room9_o2'};
