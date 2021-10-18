@@ -680,14 +680,14 @@ obj {
 	end;
 	before_Smell = 'Пахнет чистой постелью. ';
 	before_Tear = function(s)
-		if s.awake then
+		if _'room15_bedroom'.awake then
 			pr 'Тётя Агата будет очень недовольна, если ты это сделаешь. ';
 		else
 			s:tearApart();
 		end;
 	end;
 	before_Tie = function(s, w)
-		if s.awake then
+		if _'room15_bedroom'.awake then
 			pr 'Ты не понимаешь, для чего тебе это. ';
 		elseif w == nil or w^'room15_window' then
 			pr 'Так ничего не получится. Она слишком короткая и чересчур толстая. ';
@@ -700,7 +700,7 @@ obj {
 	["before_Taste,Eat"] = 'Ты отгрызаешь уголок простыни, надеясь, что тётушка не заметит этого. Ткань приятно жуется и почти безвкусная. ';
 	["before_Rub,Touch"] = 'Простыня шершавая, но очень приятная на ощупь. ';
 	before_Cut = function(s, w)
-		if s.awake then
+		if _'room15_bedroom'.awake then
 			pr 'Тётя Агата будет очень недовольна, если ты это сделаешь. ';
 		else
 			if w == nil then
@@ -826,7 +826,7 @@ obj {
 	description = function(s)
 		pr 'Старинный телевизор в идеальном состоянии. ';
 		if s:has('on') then
-			if not s.awake then
+			if not _'room15_bedroom'.awake then
 				pr(s:sound());
 			end;
 
@@ -838,7 +838,7 @@ obj {
 		_'room15_cabinet':attr('luminous');
 		_'#room15_at_cabinet':attr('luminous');
 		s:attr('luminous');
-		if s.awake then
+		if _'room15_bedroom'.awake then
 			pr('Ты включаешь телевизор. ' .. s:vision());
 		else
 			pr('Ты включаешь телевизор. '  .. s:sound() .. s:vision());
@@ -848,14 +848,14 @@ obj {
 		_'room15_cabinet':attr('~luminous');
 		_'#room15_at_cabinet':attr('~luminous');
 		s:attr('~luminous');
-		if s.awake then
+		if _'room15_bedroom'.awake then
 			pr 'Ты выключаешь телевизор. ';
 		else
 			pr 'Ты выключаешь телевизор. Странные звуки прекращаются. ';
 		end;
 	end;
 	sound = function(s)
-		if s.awake then
+		if _'room15_bedroom'.awake then
 			return 'По телевизору идет какой-то фильм про гангстеров. ';
 		else
 			return 'Сквозь помехи ты слышишь шум ветра и тихий вкрадчивый шепот. Среди прочих, многократно повторяется слово "{$fmt em|окно}". ';
@@ -889,7 +889,7 @@ obj {
 	before_Blow = 'Ты сдуваешь пыль с экрана. ';
 	["before_Talk,Tell,Answer,Ask,AskFor,AskTo"] = function(s)
 		if s:has('on') then
-			if s.awake then
+			if _'room15_bedroom'.awake then
 				local phrs = {
 					'Из телевизора доносится: "И что дальше?"';
 					'Из телевизора доносится: "Что мне с этого будет?"';
