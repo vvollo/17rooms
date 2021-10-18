@@ -345,19 +345,20 @@ obj {
 		end
 	end;
 	--, w:noun'вн'
-	before_Wear = function(s,w)
-	--		if w ~= "" then
---				p("Судя по размерам, платье для этого не предназначено.");
---		
-	--		else
+	before_Wear = function(s)
 		if not _"room14_dress".worn then
 			p"Ты разделась и повесила свою одежду на вешалку. А затем, осторожно взяв вечернее платье, надела его.";
 			_"room14_dress".worn = true;
 		else
 			p"Ты и так одета в него.";
 		end;
-	--		end
-
+	end;
+	["before_Drop,PutOn,Insert,ThrowAt,Wave"] = function(s,w)
+		if mp.event == "PutOn" and w == _"room14_dummy" then
+			p("Судя по размерам, платье для этого не предназначено.");
+		else
+			p("Не стоит так обращаться с платьем.");
+		end;
 	end;
 
 	before_Take = function(s)
@@ -383,7 +384,7 @@ obj {
 	-"одежда|своя одежда|моя одежда";
 	nam = "room14_cloth";
 	description = "Моя ничем не примечательная одежда.";
-	before_Wear = function(s,w)
+	before_Wear = function(s)
 		if _"room14_dress".worn == false then
 			p"Ты и так одета в неё.";
 		else
@@ -391,6 +392,9 @@ obj {
 			_"room14_dress".worn = false;
 		end
 
+	end;
+	["before_Drop,PutOn,Insert,ThrowAt,Wave"] = function(s,w)
+		p("Не стоит так обращаться со своей одеждой.");
 	end;
 	before_Take = function(s)
 		if _"room14_dress".worn == false then
@@ -1036,6 +1040,10 @@ obj {
 	found_in = { 'room14_box2' };
 }
 
+VerbExtend {"#Wear",
+	"{noun}/вн,held на {noun}/вн : PutOn",
+	"~ на {noun}/вн {noun}/вн : PutOn reverse",
+}
 
 
 
