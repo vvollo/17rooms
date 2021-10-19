@@ -1,4 +1,3 @@
-require "snapshots"
 mp.auto_animate = false
 
 global {
@@ -10,18 +9,8 @@ game : dict {
   ["блузка/вн"] = 'блузку';
   ["блуза/вн"] = 'блузу';
   ["блуза/рд"] = 'блузы';
-  ["оторочка/рд"] = 'оторочки';
-  ["оторочка/вн"] = 'оторочку';
-  ["труселя/рд"] = 'труселей';
-  ["труселя/вн"] = 'труселя';
   ["штаны/вн"] = 'штаны';
-  ["термоштаны/вн"] = 'термоштаны';
   ["штаны/рд"] = 'штанов';
-  ["термоштаны/рд"] = 'термоштанов';
-  ["леггинсы/рд"] = 'леггинсов';
-  ["легинсы/рд"] = 'легинсов';
-  ["леггинсы/вн"] = 'леггинсы';
-  ["легинсы/вн"] = 'легинсы';
   ["твидовый/рд"] = 'твидового';
   ["твидовый/вн"] = 'твидовый';
 }
@@ -104,16 +93,14 @@ local function room8_drop_items()
 	local need_cloth = false;
 
   list_clothing:for_each(function(v)
-    -- собрать свои вещи
-    if (v.own_clothes and not have(v)) then
-      need_take_clothing = true
-      take(v)
-    end
-
-	  -- надеть свои вещи
-    if (v.own_clothes and v:has('~worn')) then
-      need_wear_clothing = true
-      v:attr('worn');
+    -- собрать и надеть свои вещи
+    if (v:access() and v.own_clothes and not have(v)) then
+        need_take_clothing = true
+        take(v)
+        if v:has('~worn') then
+            need_wear_clothing = true
+            v:attr('worn');
+        end
     end
 
     -- снять чужие вещи
@@ -169,9 +156,6 @@ room {
 	nam = "room8_garderob";
 	title = "Гардеробная комната";
 	dsc = function(s)
-    if s:once() then
-      snapshots:write('entersroom');
-    end
     local description = '';
     if s.hot() then
       description = [[Жарко. ]];
@@ -221,7 +205,6 @@ room {
       return "Тишина.";
     end
   end;
-	before_Smell = " не пахнет.";
 }
 
 obj {
@@ -317,7 +300,8 @@ obj {
   -"зубчатый ключ,ключ";
   nam = "thooskey";
   description = "Зубчатый ключ.";
-}:attr 'disabled';
+  found = false;
+};
 
 obj {
   -"дверь/жр,но";
@@ -325,9 +309,7 @@ obj {
   found_in = 'room8_garderob';
   with_key = 'thooskey';
   after_Unlock = function(s)
-    if _('thooskey' ~= nil) then
-      _('thooskey'):disable();
-    end
+    remove('thooskey');
     mp.score=mp.score+1;
     return 'Ключ застревает в замке, но дверь всё-таки открывается.';
   end;
@@ -366,12 +348,14 @@ obj {
   capacity = 1;
   after_Receive = function(self, thing)
     local is_boiling = here().hot() and thing.mode == 'cold';
-    if is_boiling and not self:has('broken') then
+    if is_boiling and not self:has('broken') and _'room8_garagedoor':has('locked') then
       pn ('Из-под '..thing:noun('рд')..' доносится резкий писк, затем что-то начинает шипеть и ты видишь струйку дыма. Дверь распахивается настежь.');
       _('room8_garagedoor'):attr('open');
       _('room8_garagedoor'):attr('~locked');
       mp.score=mp.score+1;
       self:attr('broken')
+      remove('thooskey');
+      _'thooskey'.found = true;
       return true;
     end;
     return false;
@@ -394,56 +378,22 @@ obj {
 }: attr 'scenery,supporter,transparent';
 
 clothing = Class {
-  check_inventory = function(level, nam, part)
-    local c = nil; -- одежда того же уровня
-    local j = nil; -- одежда более высокого уровня
+	find_same = function(s)
+		local c = nil; -- одежда того же уровня
+		local oldlevel = s.level or 0;
+		local oldpart = s.part or 'top';
 		me():inventory():for_each(function(v)
-      if not v:has('clothing') then
-        return
-      end
-      if not v:has('worn') then
-        return
-      end
-      local newlevel = v.getlevel(v)
-      local newpart = v.getpart(v)
-      if (
-        newlevel == level
-        and v.nam ~= nam
-        and newpart == part
-      ) then
-        c = v
-      elseif newlevel > level and newpart == part then
-        j = v
-        level = newlevel
-      end
-    end)
-    return {c, j, level};
-  end;
-
-  getlevel = function(self)
-    if self == nil then
-      dprint('В функцию getlevel передан null')
-      return 0
-    end
-    local level = self.level;
-    if level == nil then
-      level = 0
-    end;
-    return level;
-  end;
-
-  getpart = function(self)
-    if self == nil then
-      dprint('В функцию getlevel передан null')
-      return 0
-    end
-    local part = self.part;
-    if part == nil then
-      part = 'top';
-    end;
-    return part;
-  end;
-
+			if not v:has('clothing') or not v:has('worn') then
+				return
+			end
+			local newlevel = v.level or 0;
+			local newpart = v.part or 'top';
+			if (v ~= s and newlevel == oldlevel and newpart == oldpart) then
+				c = v
+			end
+		end)
+		return c;
+	end;
 
   each_turn = function(s)
     if here().nam == 'room8_garderob' or not have(s) or not s:has('worn') then
@@ -461,37 +411,40 @@ clothing = Class {
     end
   end;
 
-
-  -- Проверка надевания: нельзя надеть майку на шубу
-  -- Проверка снятия: нельзя снять майку перед шубой
-  ['before_Wear,Disrobe'] = function(self)
-    local level = self.getlevel(self);
-    local part = self.getpart(self)
-    local retval = self.check_inventory(level, self.nam, part);
-    local c = retval[1];
-    local j = retval[2];
-    level = retval[3];
-
-    if (j ~= nil) then
-      return 'Сначала нужно снять '..j:noun('вн')..'.';
-    end;
-
-    if (mp.event == 'Wear' and c ~= nil) then
-      return 'Ты не можешь одновременно носить '..c:noun('вн') .. ' и '..self:noun('вн')..'.';
-    end
-
-
-  if (mp.event == 'Disrobe') then
-    if here().nam == 'room8_garderob' then
-     return false;
-    else
-     return 'Ну не здесь же!';
-    end;
-  end;
-
-
-    return false;
-  end;
+	refuse = function(s)
+		--"устраивать"
+		--"собственный"
+		return "Тебя вполне {#word/устраивать,#first,нст} {#word/собственный,#first} {#first}, спасибо!";
+	end;
+	before_Wear = function(s)
+		local c = s:find_same();
+		if c then
+			return mp:xaction('refuse', c);
+		end;
+		local _level = s.level or 0;
+		if (_level == 4) then
+			--"великоват"
+			return '{#First} {#word/великоват,#first} для тебя. Да и для тётушки, если подумать, тоже. Интересно, зачем {#firstit} здесь.';
+		end;
+		return false;
+	end;
+	before_Disrobe = function(s)
+		if s.own_clothes then
+			return 'Да ни за что!';
+		else
+			return false;
+		end;
+	end;
+	after_Wear = function(s)
+		local _part = s.part or 'top';
+		if _part == 'feet' and not _'thooskey'.found then
+			p('Ты пытаешься надеть ' .. s:noun('вн') .. ', но тебе что-то мешает. Пошарив рукой внутри, ты находишь ' .. _'thooskey':noun'вн' .. '.');
+			take('thooskey');
+			_'thooskey'.found = true;
+		else
+			return false;
+		end
+	end;
 }: attr 'clothing';
 
 -- Да, ты можешь писать "открыть крючок" потому что это синоним шкафа.
@@ -520,23 +473,24 @@ obj {
 }: attr 'container,openable,static,scenery';
 
 --[[
-не участвуют в системе одежды, невозможно снять: туфли, нижнее бельё
-level = 0: шарф, головной платок
-level = 1: штаны
-level = 2: рубашка, майка
+level = 0: шарф, головной убор, носки
+level = 1: штаны, юбка
+level = 2: блузка, футболка
 level = 3: пиджак, куртка
 level = 4: шуба
 --]]
 
 clothing {
-  -"синяя кепка,кепка/жр,но";
+  -"фетровая шляпа,шляпа/жр,но";
   nam = 'room8_cap';
   level = 0;
   part = 'head';
   mode = 'neutral';
+  found_in = 'room8_clothes';
   paired_hot = 'room8_baseballcap';
   paired_cold = 'room8_ushanka';
-  description = 'Старая синяя кепка с греческой буквой «альфа».';
+  description = 'Старая фетровая шляпа, какую носят герои нуарных детективов.';
+  weight = 0;
 }
 
 clothing {
@@ -561,6 +515,7 @@ clothing {
   paired_neutral = 'room8_cap';
   paired_cold = 'room8_ushanka';
   description = 'Новенькая белая бейсболка.';
+  weight = 0;
 }: dict {
   ['бейсболка/вн'] = 'бейсболку';
   ['белая бейсболка/вн'] = 'белую бейсболку';
@@ -572,43 +527,7 @@ clothing {
 -- героиня должна быть во что-то одета изначально.
 -- Придётся давать ей вещи в самом начале игры.
 clothing {
-  -"бра/ср|бюстгальтер,лифчик/мр";
-  nam = 'room8_underwear_top';
-  description = 'Твоё нижнее бельё.';
-  part = 'top';
-  own_clothes = true;
-  before_Disrobe = function()
-    return 'Да ни за что.';
-  end;
-  each_turn = function(s) end
-}: attr 'worn,concealed';
-
-clothing {
-  -"трусы,трусики,труселя/ср,мч,мн|белье,бельё/ср";
-  nam = 'room8_underwear_bottom';
-  part = 'bottom';
-  description = 'Твоё нижнее бельё.';
-  own_clothes = true;
-  before_Disrobe = function()
-    return 'Да ни за что.';
-  end;
-  each_turn = function(s) end
-}: attr 'worn,concealed';
-
-clothing {
-  -"туфли/жр,мч,мн|туфля/жр";
-  nam = 'room8_shoes';
-  part = 'feet';
-  description = 'Чёрные блестящие туфли на каблуке.';
-  own_clothes = true;
-  before_Disrobe = function()
-    return 'Да ни за что.';
-  end;
-  each_turn = function(s) end
-}: attr 'worn,concealed';
-
-clothing {
-  -"деловые штаны/ср,мч,мн";
+  -"деловые штаны,штаны/ср,мч,мн";
   nam = 'room8_pants';
   own_clothes = true;
   part = 'bottom';
@@ -617,22 +536,26 @@ clothing {
   paired_hot = 'room8_shorts';
   paired_cold = 'room8_winterpants';
   level = 1;
+  weight = 2;
 }: attr 'worn';
 
 clothing {
   -"шорты/ср,мч,мн";
   nam = 'room8_shorts';
+  own_clothes = true;
   part = 'bottom';
   mode = 'hot';
   paired_neutral = 'room8_pants';
   paired_cold = 'room8_winterpants';
   description = 'Короткие серые шорты.';
   level = 1;
+  weight = 1;
 }
 
 clothing {
-  -"зимние штаны/ср,мч,мн";
+  -"зимние штаны,штаны/ср,мч,мн";
   nam = 'room8_winterpants';
+  own_clothes = true;
   part = 'bottom';
   mode = 'cold';
   paired_neutral = 'room8_pants';
@@ -658,6 +581,7 @@ clothing {
 clothing {
   -"вязаная блуза,шерстяная блуза,блуза/жр";
   nam = 'room8_winterblouse';
+  own_clothes = true;
   part = 'top';
   description = 'Белая вязаная блузка.';
   mode = 'cold';
@@ -670,6 +594,7 @@ clothing {
 clothing {
   -"блузка,мини-блузка,мини-блуза,блуза/жр";
   nam = 'room8_shortblouse';
+  own_clothes = true;
   part = 'top';
   description = 'Белая мини-блузка. Может быть, даже мини-мини.';
   mode = 'hot';
@@ -682,6 +607,7 @@ clothing {
 clothing {
   -"жилет/мр";
   nam = 'room8_formalvest';
+  own_clothes = true;
   description = 'Чёрный короткий жилет.';
   level = 3;
   weight = 1;
@@ -694,6 +620,7 @@ clothing {
 clothing {
   -"твидовый пиджак,пиджак/мр,но";
   nam = 'room8_winter_formalсoat';
+  own_clothes = true;
   description = 'Чёрный твидовый пиджак. Очень тёплый.';
   level = 3;
   weight = 1;
@@ -715,80 +642,46 @@ clothing {
   part = 'top';
   mode = 'neutral';
 }: attr 'worn';
-take('room8_underwear_bottom');
-take('room8_shoes');
+
 take('room8_pants');
 take('room8_blouse');
 take('room8_formalcoat');
-take('room8_underwear_top');
 
 clothing {
-  -"леггинсы,легинсы/ср,мн";
-  nam = 'room8_leggins';
-  part = 'bottom';
-  level = 1;
-  mode = 'hot';
-  paired_cold = 'room8_thermo';
-  paired_neutral = 'room8_sport';
-  description = 'Белые спортивные леггинсы из быстро сохнущей ткани.';
-}
-
-clothing {
-  -"спортивные штаны,спортивки/ср,мн";
-  nam = 'room8_sport';
-  part = 'bottom';
-  level = 1;
-  mode = 'neutral';
-  found_in = 'room8_clothes';
-  paired_hot = 'room8_leggins';
-  paired_cold = 'room8_thermo';
-  description = 'Спортивные облегающие штаны с полосками.';
-}
-
-
-clothing {
-  -"термоштаны/ср,мн";
-  nam = 'room8_thermo';
-  part = 'bottom';
-  level = 1;
-  mode = 'cold';
-  paired_hot = 'room8_leggins';
-  paired_neutral = 'room8_sport';
-  description = 'Белые тёплые леггинсы для очень холодной погоды.';
-}
-
-clothing {
-  -"халат/мр";
-  nam = 'room8_robe';
+  -"гольф/мр";
+  nam = 'room8_golf';
   level = 2;
   weight = 2;
   part = 'top';
   mode = 'cold';
   paired_neutral = 'room8_tshirt';
   paired_hot = 'room8_sportshirt';
-  description = 'Махровый тёплый клетчатый халат, в котором всегда тепло и мягко.';
+  description = 'Колючий шерстяной гольф, в котором всегда тепло.';
 }
 
 clothing {
   -"майка/жр";
   nam = 'room8_tshirt';
   part = 'top';
-  mode = 'neutral';
-  level = 1;
-  paired_cold = 'room8_robe';
-  paired_hot = 'room8_sportshirt';
-  description = 'Лёгкая белая майка, на спине нарисованы крестики-нолики.';
+  mode = 'hot';
+  level = 2;
+  paired_cold = 'room8_golf';
+  paired_neutral = 'room8_sportshirt';
+  description = 'Лёгкая белая майка-безрукавка, на спине нарисованы крестики-нолики.';
+  weight = 1;
 }
 
 clothing {
   -"футболка/жр";
   nam = 'room8_sportshirt';
-  mode = 'hot';
+  mode = 'neutral';
   part = 'top';
-  level = 1;
-  paired_cold = 'room8_robe';
-  paired_neutral = 'room8_tshirt';
+  level = 2;
+  found_in = 'room8_clothes';
+  paired_cold = 'room8_golf';
+  paired_hot = 'room8_tshirt';
   description = 'Спортивная полосатая футболка с короткими рукавами. На спине нарисован номер 7.';
+  weight = 1;
 }
 
 clothing {
@@ -800,7 +693,7 @@ clothing {
   mode = 'cold';
   paired_hot = 'room8_overcoat';
   paired_neutral = 'room8_raincoat';
-  description = 'Меховая мутоновая шуба. Не совсем подходящая одежда для отапливаемых помещений. У меха какой-то странный зелёный оттенок.';
+  description = 'Меховая мутоновая шуба. Безразмерная. Не совсем подходящая одежда для отапливаемых помещений. У меха какой-то странный зелёный оттенок.';
 }
 
 clothing {
@@ -811,9 +704,9 @@ clothing {
   paired_hot = 'room8_overcoat';
   found_in = 'room8_clothes';
   level = 4;
-  weight = 2;
+  weight = 3;
   mode = 'neutral';
-  description = 'Яркий синий непромокаемый дождевик.';
+  description = 'Яркий синий непромокаемый дождевик. Безразмерный.';
 }
 
 clothing {
@@ -823,61 +716,28 @@ clothing {
   paired_cold = 'room8_wintercoat';
   paired_neutral = 'room8_raincoat';
   level = 4;
-  weight = 0;
+  weight = 1;
   mode = 'hot';
-  description = 'Лёгкая цветная полупрозрачная накидка.';
-}
-
-clothing {
-  -"тёплая рубашка/жр,но";
-  nam = 'room8_warmshirt';
-  part = 'top';
-  level = 2;
-  mode = 'cold';
-  paired_hot = 'room8_lightwear';
-  paired_neutral = 'room8_shirt';
-  description = 'Утеплённая салатовая рубашка с длинными рукавами.';
-}
-
-clothing {
-  -"рубашка/жр";
-  nam = 'room8_shirt';
-  part = 'top';
-  level = 2;
-  found_in = 'room8_clothes';
-  paired_hot = 'room8_lightwear';
-  paired_cold = 'room8_warmshirt';
-  mode = 'neutral';
-  description = 'Женская салатовая рубашка с длинными рукавами.';
-}
-
-clothing {
-  -"лёгкая рубашка,рубашка/жр,но";
-  nam = 'room8_lightwear';
-  part = 'top';
-  level = 2;
-  mode = 'hot';
-  paired_cold = 'room8_warmshirt';
-  paired_neutral = 'room8_shirt';
-  description = "Чёрная рубашка с длинными рукавами с большими дырами для вентиляции. Очень большими дырами.";
+  description = 'Лёгкая цветная полупрозрачная накидка. Безразмерная.';
 }
 
 clothing {
   -"шарф/мр";
   nam = 'room8_winterscarf';
-  part = 'head';
+  part = 'neck';
   level = 0;
   mode = 'cold';
   paired_neutral = 'room8_shawl';
   paired_hot = 'room8_kerchief';
-  description = 'Шерстяной клетчатый шарф с надписью «ЭНИГМА».'
+  description = 'Шерстяной клетчатый шарф с надписью «ЭНИГМА».';
+  weight = 1;
 }
 
 clothing {
   -"шаль/жр";
   nam = 'room8_shawl';
   found_in = 'room8_clothes';
-  part = 'head';
+  part = 'neck';
   level = 0;
   weight = 1;
   mode = 'neutral';
@@ -889,66 +749,83 @@ clothing {
 clothing {
   -"платок/мр";
   nam = 'room8_kerchief';
-  part = 'head';
+  part = 'neck';
   level = 0;
   mode = 'hot';
   paired_cold = 'room8_winterscarf';
   paired_neutral = 'room8_shawl';
   description = 'Лёгкий прозрачный платок для головы.';
-}
-
-clothing {
-  -"майка-свитер, майка, свитер/мр";
-  nam = 'room8_sweatershirt';
-  part = 'top';
-  weight = 2;
-  level = 3;
-  mode = 'hot';
-  paired_cold = 'room8_duckdown_jacket';
-  paired_neutral = 'room8_puffyvest';
-  description = 'Синяя майка, стилизованная под свитер. На ней даже напечатаны ниточки.';
-}
-
-clothing {
-  -"тёплый жилет,жилет/мр";
-  nam = 'room8_puffyvest';
-  part = 'top';
-  weight = 2;
-  level = 3;
-  mode = 'neutral';
-  paired_cold = 'room8_duckdown_jacket';
-  paired_hot = 'room8_sweatershirt';
-  description = 'Синий пуховой жилет с короткими рукавами.';
-}
-
-clothing {
-  -"пуховик/мр";
-  nam = 'room8_duckdown_jacket';
-  part = 'top';
-  weight = 3;
-  level = 3;
-  paired_hot = 'room8_sweatershirt';
-  paired_neutral = 'room8_puffyvest';
-  mode = 'cold';
-  description = 'Синий длинный пуховик для сорокаградусных морозов. В нём ты будешь выглядеть синим колобком. А если найти поясок, то колбаской.'
+  weight = 0;
 }
 
 obj {
   -"машина времени,машина/жр,но|пьедестал,переключатель/мр,но|кнопка/жр,но";
   nam = 'room8_timemachine';
   found_in = 'room8_garderob';
-  description = 'Маленький пьедестал с надписью «Машина времени однонаправленная». На пьедестале находится переключатель, который указывает на положение «ВЫКЛ».';
-  after_SwitchOn = function()
-    pn "Реальность немного расплывается… а затем собирается воедино.";
-    -- Метапарсер для команды UNDO занимает дефолтный слот снапшотов,
-    -- так что нам надо использовать свой слот
-    snapshots:restore('entersroom');
-  end;
-  after_Push = function()
-    pn "Реальность немного расплывается… а затем собирается воедино.";
-    snapshots:restore('entersroom');
+  description = 'Маленький пьедестал с надписью «Машина времени двунаправленная». На пьедестале находится переключатель, который указывает на положение «ВЫКЛ».';
+  after_SwitchOn = function(s)
+	s:attr('~on');
+	walk 'room8_tmach_start';
   end;
 }: attr 'switchable,static,scenery';
+
+cutscene {
+	nam = 'room8_tmach_start';
+	text = {
+		"Экспериментальная разработка, способная на несколько секунд доставить вас в собственное недалёкое прошлое или будущее.";
+		"Работает в режиме «только чтение», то есть вы можете лишь наблюдать события, но не вмешиваться.";
+		"Также не забывайте, что показанное будущее -- лишь один из возможных вариантов развития событий, хотя и наиболее вероятный.";
+	};
+	next_to = 'room8_tmach_choice'
+}
+
+dlg {
+	nam = 'room8_tmach_choice';
+	phr = {
+		[[Куда вы хотите отправиться?]];
+		{
+			'В прошлое.',
+			function() walk 'room8_tmach_past'; end;
+		},
+		{
+			'В будущее.',
+			function() walk 'room8_tmach_future'; end;
+		},
+		{
+			'Я передумала!',
+			function() walk 'room8_garderob'; end;
+		},
+	};
+}
+
+cutscene {
+	nam = 'room8_tmach_past';
+	text = {
+		"Ты снова возле дома.";
+		"Заходишь за него и направляешься к закрытым шкафам на террасе. Скоро ты их откроешь.";
+		"Твой мимолётный взгляд скользит по плющу, опутавшему дом.";
+		"Ты замечаешь, что на земле под плющом ничего нет, никаких ключей.";
+		"Стоп! Как такое может быть?";
+		"...";
+		"Реальность немного расплывается… а затем собирается воедино.";
+	};
+	next_to = 'room8_garderob'
+}
+
+cutscene {
+	nam = 'room8_tmach_future';
+	text = {
+		"Ты на улице Петербурга.";
+		"На земле валяются несколько окровавленных тел, вокруг ни души.";
+		"Внезапно из-за угла показывается чудовище с острыми когтями. Оно замечает тебя!";
+		"Ты хочешь бежать, но от страха не можешь пошевелиться.";
+		"Чудовище несётся к тебе, чтобы растерзать!";
+		"В последний момент ты вдруг понимаешь, что монстр ОЧЕНЬ похож на твою тётушку!!!";
+		"...";
+		"Реальность немного расплывается… а затем собирается воедино.";
+	};
+	next_to = 'room8_garderob'
+}
 
 obj {
   -"плакат,постер,комикс/мр,но";
@@ -975,7 +852,10 @@ obj {
   before_Receive = function(self, thing)
     mp:xaction('Take', thing)
   end;
-  description = 'Карманы пусты, в них нет ничего интересного.';
+  before_Exam = function(s)
+    mp:xaction('Inv')
+  end;
+--  description = 'Карманы пусты, в них нет ничего интересного.';
 }: attr 'concealed,container';
 take('room8_out_pockets');
 
@@ -1024,7 +904,7 @@ clothing {
   -"миниюбка,мини-юбка,юбка,мини/жр";
   nam = 'room8_miniskirt';
   part = 'bottom';
-  weight = 0;
+  weight = 1;
   paired_neutral = 'room8_skirt';
   paired_cold = 'room8_coldskirt';
   level = 1;
@@ -1052,40 +932,39 @@ clothing {
 }
 
 clothing {
-  -"парадное платье,платье/ср";
-  nam = 'room8_parade_dress';
-  part = 'top';
-  description = 'Это огромное бордовое парадное платье с рюшами, несколькими внутренними юбками и длинным шлейфом.';
+  -"носки/мн";
+  nam = 'room8_socks';
+  part = 'feet';
+  description = 'Чёрные хлопчатобумажные носки.';
   mode = 'neutral';
   found_in = 'room8_clothes';
-  paired_hot = 'room8_eveningdress';
-  paired_cold = 'room8_colddress';
-  level = 2;
-  -- подлянка для игрока: платье достаточно тяжёлое, чтобы его перенести в тёплый режим, но там оно бесполезно
-  weight = 3;
+  paired_hot = 'room8_stockings';
+  paired_cold = 'room8_coldsocks';
+  level = 0;
+  weight = 0;
 }
 
 clothing {
-  -"вечернее платье,платье/ср";
-  nam = 'room8_eveningdress';
-  part = 'top';
-  description = 'Длинное синее вечернее платье из легко проветриваемой ткани.';
+  -"чулки/мн";
+  nam = 'room8_stockings';
+  part = 'feet';
+  description = 'Длинные полупрозрачные чёрные чулки из нейлона.';
   mode = 'hot';
-  paired_neutral = 'room8_parade_dress';
-  paired_cold = 'room8_colddress';
-  level = 2;
-  weight = 1;
+  paired_neutral = 'room8_socks';
+  paired_cold = 'room8_coldsocks';
+  level = 0;
+  weight = 0;
 }
 
 clothing {
-  -"тёплое платье,меховое платье,платье/ср|оторочка/жр";
-  nam = 'room8_colddress';
-  part = 'top';
-  description = 'Это красное вечернее утеплённое платье с меховой оторочкой.';
+  -"шерстяные носки,носки/мн";
+  nam = 'room8_coldsocks';
+  part = 'feet';
+  description = 'Тёплые шерстяные носки чёрного цвета.';
   mode = 'cold';
-  paired_neutral = 'room8_parade_dress';
-  paired_hot = 'room8_eveningdress';
-  level = 2;
+  paired_neutral = 'room8_socks';
+  paired_hot = 'room8_stockings';
+  level = 0;
   weight = 1;
 }
 
@@ -1099,17 +978,19 @@ clothing {
   paired_cold = 'room8_hoody';
   paired_hot = 'room8_top';
   description = 'Кожаная куртка с нашивкой «ПИНГВИН». Хороша в пасмурный день.';
+  weight = 2;
 }
 
 clothing {
   -"топ,верх/мр";
   nam = 'room8_top';
   part = 'top';
-  level = 1;
+  level = 3;
   mode = 'hot';
   paired_neutral = 'room8_jacket';
   paired_cold = 'room8_hoody';
   description = 'Белый спортивный верх (топ) из быстро сохнущей ткани.';
+  weight = 1;
 }
 
 clothing {
@@ -1121,10 +1002,11 @@ clothing {
   paired_hot = 'room8_top';
   mode = 'cold';
   description = 'Серая спортивная толстовка с длинными рукавами.';
+  weight = 2;
 }
 
 std.for_each_obj(function(v)
-  if (v.check_inventory ~= nil and v.getlevel ~= nil) then
+  if (v.find_same ~= nil) then
     list_clothing:add(v)
   end
 end)
