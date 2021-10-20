@@ -148,6 +148,13 @@ room {
 		return false
 	end
 	end;
+	before_Remove = function(s,w,wh)
+		if wh == _'room14_floor' then
+			mp:xaction('Take', w);
+		else
+			return false;
+		end;
+	end;
 	e_to = '';
 	w_to = '';
 	compass_look = function(s,dir)
@@ -577,7 +584,11 @@ obj {
 	scope = {};
 	['before_Take,Push,Pull,Turn,LookUnder'] = function(s)
 		if _"room14_drawer".moving == true then
-			p"Ковёр невозможно сдвинуть, пока на нём стоит тяжёлый комод";
+			if not s.moving then
+				p"Ковёр невозможно сдвинуть, пока на нём стоит тяжёлый комод.";
+			else
+				p"Ковёр не получится вернуть на место, пока комод на пластине.";
+			end
 		else
 			if _"room14_carpet".moving == false then
 				p"Попробовав поднять ковёр, ты поняла, что он слишком тяжёлый, чтобы переместить его, но, откинув край ковра, ты увидела на полу посреди коридора квадратную пластину. А рядом с пластиной — грязную перчатку горничной.";
@@ -678,18 +689,16 @@ obj {
 					_"room14_drawer".moving = false;
 				end
 			elseif _"room14_carpet".moving == true then
-				if _"room14_plate":empty() then
-				if _"room14_drawer".moving == false then
+				if not s.moving and _"room14_plate":empty() then
 					p"С трудом ты передвинула комод на пластину в центре пола.";
 					_"room14_drawer".moving = true;
 					move(_"room14_drawer", _"room14_plate");
 					_'room14_drawer':attr'~concealed';
-				else
+				elseif s.moving then
 					p"С трудом ты передвинула комод с пластины обратно на место под картиной.";
 					_"room14_drawer".moving = false;
 					move(_"room14_drawer", _"room14_secondfloor");
 					_'room14_drawer':attr'concealed';
-				end
 				else
 					p"На пластине уже что-то лежит, поэтому туда комод не передвинуть.";
 				end
@@ -818,10 +827,7 @@ obj {
 		move(w, _"room14_secondfloor");
 		return false
 	end;
-	before_Remove = function(s, w)
-		pl.obj:add(w);
-	end;
-}:attr'enterable, supporter,transparent'
+}:attr'enterable, supporter,transparent,scenery'
 
 obj {
 	-"витрина, стеклянная витрина";
