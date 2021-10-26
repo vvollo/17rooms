@@ -169,7 +169,7 @@ room {
 	
 
 }: with {'room14_wardrobe', 'room14_door', 'room14_carpet', 'room14_plan', 'room14_stairs', 'room14_ladder', 'room14_dress', 
-'room14_cloth', 'room14_mirror', 'room14_dummy', 'room14_picture', 'room14_drawer', 'room14_showcase', 'room14_walls','room14_ceiling','room14_scale'}
+'room14_mirror', 'room14_dummy', 'room14_picture', 'room14_drawer', 'room14_showcase', 'room14_walls','room14_ceiling','room14_scale'}
 
 
 
@@ -346,6 +346,7 @@ obj {
 	nam = "room14_dress";
 	--description = "Тёмно-синее лаконичное вечернее платье прямого покроя с отдельными кружевными элементами на рукавах и глубоким вырезом. Идеально подчеркнёт женственные формы, которых у тебя нет.";
 	worn = false;
+	level = 2;
 
 	before_Exam = function(s)
 		if _"room14_picture".seen == true then
@@ -360,6 +361,7 @@ obj {
 		if not _"room14_dress".worn then
 			p"Ты разделась и повесила свою одежду на вешалку. А затем, осторожно взяв вечернее платье, надела его.";
 			_"room14_dress".worn = true;
+			change_cloth();
 		else
 			p"Ты и так одета в него.";
 		end;
@@ -383,6 +385,7 @@ obj {
 		if _"room14_dress".worn then
 			p"Отвернувшись от зеркала и встав лицом к стене, ты сняла вечернее платье. А затем повесила его на вешалку и переоделась в свою одежду.";
 			_"room14_dress".worn = false;
+			change_cloth();
 		else
 			return false;
 		end;
@@ -401,6 +404,7 @@ obj {
 		else
 			p"Отвернувшись от зеркала и встав лицом к стене, ты сняла вечернее платье. А затем повесила его на вешалку и переоделась в свою одежду.";
 			_"room14_dress".worn = false;
+			change_cloth();
 		end
 
 	end;
@@ -421,8 +425,35 @@ obj {
 			return false;
 		end;
 	end;
-}:attr'concealed, clothing'
+}:attr'concealed, clothing, worn'
 
+take('room14_cloth');
+
+function change_cloth()
+	if _"room14_dress".worn then
+		take('room14_dress');
+		move('room14_cloth', 'room14_secondfloor');
+		move('room8_pants', 'room14_secondfloor');
+		move('room8_blouse', 'room14_secondfloor');
+		move('room8_formalcoat', 'room14_secondfloor');
+		_'room14_dress':attr'worn';
+		_'room14_cloth':attr'~worn';
+		_'room8_pants':attr'~worn';
+		_'room8_blouse':attr'~worn';
+		_'room8_formalcoat':attr'~worn';
+	else
+		take('room14_cloth');
+		take('room8_pants');
+		take('room8_blouse');
+		take('room8_formalcoat');
+		move('room14_dress', 'room14_secondfloor');
+		_'room14_cloth':attr'worn';
+		_'room8_pants':attr'worn';
+		_'room8_blouse':attr'worn';
+		_'room8_formalcoat':attr'worn';
+		_'room14_dress':attr'~worn';
+	end
+end;
 
 -- зеркало
 obj {
@@ -684,7 +715,7 @@ obj {
 	before_Take = function(s)
 		p"Комод слишком большой и тяжёлый.";
 	end;
-	['before_Push,Pull,'] = function(s, ev)
+	['before_Push,Pull,Turn'] = function(s, ev)
 		if _"room14_box1".stable or _"room14_box2".stable then
 			p"Комод слишком тяжёлый, чтобы его двигать. Если бы можно было его как-то облегчить.";
 		else 
@@ -728,7 +759,7 @@ obj {
 
 	--obj = { 'room14_box1', 'room14_box2' };
 	
-}:attr'concealed, container'
+}:attr'concealed, container, static'
 
 obj {
 	-"верхний ящик комода, верхний ящик, ящик комода, ящик";
@@ -1073,12 +1104,12 @@ obj {
 		p"Ты почитала документы в папке и поняла, что они посвящены убийству мужа тёти Агаты и самоубийству их горничной.";
 	elseif found >= 4 and found <= 9 or found == 18 or found == 22 then
 		p"Согласно папке, преступление произошло спустя несколько лет после свадьбы тёти. Судя по свидетельствам тёти, убийца вечером проникла в их спальню и попыталась застрелить тётю. Но вместо неё погиб муж, пытаясь отобрать пистолет убийцы. После чего убийца покончила с собой на пороге комнаты. О внебрачной связи своего мужа тётя узнала только после того, как на пороге их спальни появилась горничная.";
+	elseif found == 10 then
+		p'Ты нашла в документах следующее: "...никаких следов выстрела на руках горничной не осталось, поскольку она была в длинных атласных перчатках... Но перед этим горничная зачем-то написала шариковой ручкой на своей ладони: {$fmt b|КФ937}"';
 		if not s.score then
 			mp.score=mp.score+1;
 			s.score = true;
 		end;
-	elseif found == 10 then
-		p'Ты нашла в документах следующее: "...никаких следов выстрела на руках горничной не осталось, поскольку она была в длинных атласных перчатках..."';
 	elseif found == 11 or found == 12 or found == 13 then
 		p"Судя по отчёту, горничную Веронику наняли сразу после свадьбы для того, чтобы вести хозяйство большого особняка. Мотивом преступления стала ревность, которую убийца испытывала к жене своего любовника. После неудачной попытки убийства, находясь в состоянии аффекта от смерти любовника, она покончила с собой.";
 	elseif found >= 14 and found <= 17 then
