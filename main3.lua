@@ -51,8 +51,38 @@ function init()
 	pl.word = -"ты/жр,2л"
 	pl.room = 'intro_cutscene'
 	pl.capacity = 100
- pl.description = "Ты умница и красавица в полном расцвете лет, и выглядишь, как и всегда, отлично. А зовут тебя Настя."	
+	pl.description = function()
+		return "Ты умница и красавица в полном расцвете лет, и выглядишь, как и всегда, отлично. А зовут тебя Настя.^" .. dsc_wearing()
+	end;
 end
+
+function dsc_wearing()
+	local found = {}
+	me():inventory():for_each(function(v)
+		if not v:has('clothing') or not v:has('worn') then
+			return
+		end
+		local _level = v.level or 0;
+		if (_level > 0 and _level < 4) then
+			table.insert(found, v)
+		end
+	end)
+	local s = "";
+	for o = 1, #found do
+		if #found > 1 and o == #found then
+			s = s .. " и ";
+		elseif o > 1 then
+			s = s .. ", ";
+		end;
+		s = s .. found[o]:noun'вн';
+	end;
+	if #found == 0 then
+		s = " костюм Евы. {$fmt em|Это значит, что в игру вкрался баг!}";
+	else
+		s = s .. ".";
+	end;
+	return "Ты одета в " .. s;
+end;
 
 cutscene {
 	nam = 'intro_cutscene';
