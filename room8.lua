@@ -94,9 +94,11 @@ local function room8_drop_items()
 
   list_clothing:for_each(function(v)
     -- собрать и надеть свои вещи
-    if (v:access() and v.own_clothes and not have(v)) then
-        need_take_clothing = true
-        take(v)
+    if (v:access() and v.own_clothes) then
+        if not have(v) then
+            need_take_clothing = true
+            take(v)
+        end
         if v:has('~worn') then
             need_wear_clothing = true
             v:attr('worn');
@@ -394,23 +396,13 @@ clothing = Class {
 		end)
 		return c;
 	end;
-
-  each_turn = function(s)
-    if here().nam == 'room8_garderob' or not have(s) or not s:has('worn') then
-      s:attr'~concealed'
-    else
-      s:attr'concealed'
-    end
-  end;
-
-  before_Any = function(s)
-    if here().nam == 'room14_secondfloor' then
-      return "Это не то место, где тебе это понадобится.";
-    else
-      return false;
-    end
-  end;
-
+	["before_Take,Wear"] = function(s)
+		if _"room14_dress".worn then
+			return 'Нет, пока на тебе платье.';
+		else
+			return false;
+		end;
+	end;
 	refuse = function(s)
 		--"устраивать"
 		--"собственный"
@@ -429,7 +421,7 @@ clothing = Class {
 		return false;
 	end;
 	before_Disrobe = function(s)
-		if s.own_clothes then
+		if s.own_clothes and s:has'worn' then
 			return 'Да ни за что!';
 		else
 			return false;
@@ -537,7 +529,7 @@ clothing {
   paired_cold = 'room8_winterpants';
   level = 1;
   weight = 2;
-}: attr 'worn';
+}: attr 'worn,concealed';
 
 clothing {
   -"шорты/ср,мч,мн";
@@ -550,7 +542,7 @@ clothing {
   description = 'Короткие серые шорты.';
   level = 1;
   weight = 1;
-}
+}: attr 'concealed';
 
 clothing {
   -"зимние штаны,штаны/ср,мч,мн";
@@ -563,7 +555,7 @@ clothing {
   weight = 3;
   description = 'Зимние утеплённые штаны. Очень тяжёлые.';
   level = 1;
-}
+}: attr 'concealed';
 
 clothing {
   -"белая блузка,блузка,белая блуза,блуза/жр";
@@ -576,7 +568,7 @@ clothing {
   weight = 1;
   paired_cold = 'room8_winterblouse';
   paired_hot = 'room8_shortblouse';
-}: attr 'worn';
+}: attr 'worn,concealed';
 
 clothing {
   -"вязаная блуза,шерстяная блуза,блуза/жр";
@@ -589,7 +581,7 @@ clothing {
   paired_hot = 'room8_shortblouse';
   level = 2;
   weight = 2;
-}
+}: attr 'concealed';
 
 clothing {
   -"блузка,мини-блузка,мини-блуза,блуза/жр";
@@ -602,7 +594,7 @@ clothing {
   paired_cold = 'room8_winterblouse';
   level = 2;
   weight = 1;
-}
+}: attr 'concealed';
 
 clothing {
   -"жилет/мр";
@@ -615,7 +607,7 @@ clothing {
   mode = 'hot';
   paired_neutral = 'room8_formalcoat';
   paired_cold = 'room8_winter_formalсoat';
-}
+}: attr 'concealed';
 
 clothing {
   -"твидовый пиджак,пиджак/мр,но";
@@ -628,7 +620,7 @@ clothing {
   mode = 'cold';
   paired_neutral = 'room8_formalcoat';
   paired_hot = 'room8_formalvest';
-}
+}: attr 'concealed';
 
 clothing {
   -"чёрный пиджак,черный пиджак,пиджак/мр,но";
@@ -641,7 +633,7 @@ clothing {
   weight = 2;
   part = 'top';
   mode = 'neutral';
-}: attr 'worn';
+}: attr 'worn,concealed';
 
 take('room8_pants');
 take('room8_blouse');
@@ -654,8 +646,8 @@ clothing {
   weight = 2;
   part = 'top';
   mode = 'cold';
-  paired_neutral = 'room8_tshirt';
-  paired_hot = 'room8_sportshirt';
+  paired_neutral = 'room8_sportshirt';
+  paired_hot = 'room8_tshirt';
   description = 'Колючий шерстяной гольф, в котором всегда тепло.';
 }
 
