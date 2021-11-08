@@ -1,9 +1,3 @@
--- Доступное пространство имён для объектов - все имена объектов должны начинаться с "room2_" или "terassa_" 
--- Все описания можно менять
--- Задача: Игрок должен найти в локации
--- ВНИМАНИЕ: Это одна из стартовых локаций! Не надо делать сложно! Доступ на восток и запад преграждать нельзя! Доступа на юг может не быть, он открывается не отсюда
--- Игрок может придти в локацию как с ключом так и без ключа!
-
 ----[[
 -- ##   ##
 -- ##   ##                                            ##
@@ -15,10 +9,6 @@
 
 --]]
 
--- local _'room2_s'.pl_high = 0;
--- local _'room2_s'.has_noticed_key = false;
--- -- local room2_uni = 0
--- local room2_uni = {arch = false, botan = false, hist = false}
 function room2_check_uni(k)
 	local _uni = _'room2_s'.uni
 	if not _uni[k] then
@@ -46,24 +36,19 @@ obj {
 	been_on_high = false;
 	uni = {false, false, false, false, false};
 	vowels = {"а","и","о","у","э","А","И","О","У","Э"};
-	-- uni = {arch = false, botan = false, hist = false, anat = false};
-	-- unitxt1 = {arch = 'архитектура', botan = 'false', hist = 'false', anat = ""};
-	-- unitxt2 = 
 }
 
 function room2_sober()
-	if _'room2_s'.pl_high == 1 then
+	if _'room2_s'.pl_high == 1 and not isDaemon('room16_AI') then
 		p "Ты чувствуешь, что эффект от яда проходит и миру возвращаются привычные тусклые краски.";
 		_'room2_s'.pl_high = 0;
 	end
 end;
 
 room2_room = Class({
-	-- title = function(s)
-	-- 	if _'room2_s'.pl_high == 1 then
-	-- 		s.title = s.title .. " (немного под кайфом)";
-	-- 	end;
-	-- end;
+	status = function()
+		return _'room2_s'.pl_high == 1 and "в мире ярких красок"
+	end;
 	['before_Exam,Open'] = function()
 		return false;
 	end;
@@ -170,21 +155,6 @@ room2_Photo = Class {
 	before_Default = function(s,ev) mp:xaction(ev, parent(s)) end;
 }:attr 'concealed'
 
--- помахать пугалу
-VerbExtend {"#Wave",
-	"{noun}/дт : WaveHands"
-}
-
--- идти по дорожке
-VerbExtend {"#Walk",
-	"по {noun}/дт : Walk"
-}
-
--- перевернуть страницу
-VerbExtendWord {"#Turn",
-	"переверн/уть"
-}
-
 ----[[
 --   #####
 --  ##  ##
@@ -196,16 +166,9 @@ VerbExtendWord {"#Turn",
 --                                       #
 --]]
 
--- room {
---	 nam = "room2_limbo";
--- }
-
 room2_room {
 	nam = "room2_terassa",
-	title = function()
-		return _'room2_s'.pl_high == 0 and "терраса за домом" or "терраса за домом (в мире ярких красок)"
-	end;
-	-- dsc = "Дом на юге. Дорожка обегает вокруг дома на западе и на востоке.",
+	title = "Терраса за домом";
 	dsc = function(s)
 		local _forest = _'room2_s'.pl_high == 0 and "тёмного, жутковатого" or "чёрного, жуткого";
 		local _scarecrow = (_'room2_s'.pl_high == 1 and _'room2_scarecrow':has'seen_on_high') and "^^Перед лесом беснуется пугало." or "";
@@ -216,24 +179,28 @@ room2_room {
 	n_to = function () p "В тот тёмный лес тебе точно не надо." end,
 	e_to = function()
 		room2_sober()
-		return 'room1_kryltco' -- НУЖНО ПОДСТАВИТЬ НУЖНУЮ КОМНАТУ !!!
+		return 'room1_kryltco'
 	end;
 	w_to = function()
 		room2_sober()
-		return 'room1_kryltco' -- НУЖНО ПОДСТАВИТЬ НУЖНУЮ КОМНАТУ !!!
+		return 'room1_kryltco'
 	end;
 }
 
 room2_room {
 	nam = "room2_on_terrasa",
-	title = function()
-		return _'room2_s'.pl_high == 0 and "на террасе" or "на террасе (в мире ярких красок)"
+	title = "На террасе";
+	onenter = function(s)
+		if isDaemon('room16_AI') then
+			_'room2_s'.pl_high = 1
+		end
 	end;
 	dsc = function(s)
-		local _stoneshine = isDaemon('room16_AI') and "Ты выбегаешь на террасу и замечаешь, что мерцание камня стало особенно ярким.^^" or "";
+		local _stoneshine = isDaemon('room16_AI') and "Как только ты выбегаешь на террасу, плющ, будто бы ожив, снова жалит тебя. В мир возвращаются краски, и ты замечаешь, что мерцание камня стало особенно ярким.^^" or "";
 		return _stoneshine .. "Тут тенисто и прохладно — плющ защищает пространство от зноя. В дом ведёт широкая, двустворчатая дверь. По обеим сторонам от неё стоят застеклённые шкафы с заметными табличками на них. Левый с табличкой «Саргассово море», правый — «Экспедиция в Такла-Макан».^Выход с террасы — на север, вниз по ступеням.";
 	end;
 	s_to = 'room2_door',
+	in_to = 'room2_door',
 	n_to = function(s)
 		if not _'room2_s'.has_noticed_key and where(_'room2_smt_shiny') ^ 'room2_terassa' and _'room2_right_cabinet':has('open') then
 			p("Сбегая по ступенькам, ты вдруг замечаешь, что на земле под плющом что-то блестит.");
@@ -243,6 +210,7 @@ room2_room {
 		return 'room2_terassa';
 	end;
 	d_to = function(s) mp:xaction("Walk", _'@n_to') end;
+	out_to = function(s) mp:xaction("Walk", _'@n_to') end;
 }
 
 door {
@@ -254,18 +222,16 @@ door {
 			DaemonStop 'room16_AI';
 			return 'room12_cutsceneStone'
 		end;
-		return 'room12_gostinnaya' -- НУЖНО ПОДСТАВИТЬ НУЖНУЮ КОМНАТУ !!!
+		return 'room12_gostinnaya'
 	end;
 	when_locked = [[Здесь есть закрытая дверь.]];
 	when_open = [[Дверь открыта.]];
-	with_key = 'emptyroom'; -- НУЖНО ПОДСТАВИТЬ НУЖНЫЙ КЛЮЧ !!!
+	with_key = 'emptyroom';
 	before_Unlock = function(s, w)
 		if w ^ 'bigkey' then
 			return "Хм, столько приключений, чтобы добыть " .. _'bigkey':noun'вн' .. ", а он к этой двери не подходит."
 		end
 		return false
-		-- return mp.msg.Unlock.WRONGKEY;
-		-- p ("Нет, ", w:noun 'им', " здесь не подходит.")
 	end;
 	before_Push = "Похоже, сила здесь не поможет. Нужен подходящий ключ.";
 	before_Attack = "Ты колотишь в дверь кулаком, но, как и предполагала — никто не открывает.";
@@ -753,7 +719,7 @@ room2_Exhibit {
 			return false;
 		end;
 		if w == nil then
-			p "Как?!";
+			p "Чем?!";
 			return true;
 		end;
 		mp:check_held(w);
@@ -764,6 +730,26 @@ room2_Exhibit {
 				s:destroyEvilStone(w);
 			else
 				p "Инструмент явно не подходящий.";
+			end;
+		end;
+	end;
+	before_Shoot = function(s, w)
+		if not _'room2_s'.been_on_high then
+			return false;
+		end;
+		if not w and pl:have('gun') then
+			w = _'gun';
+		end
+		if w == nil then
+			p "Из чего?!";
+			return true;
+		end;
+		mp:check_held(w);
+		if w ~= nil then
+			if w ^ "gun" then
+				s:destroyEvilStone(w);
+			else
+				p "Это явно не огнестрельное оружие.";
 			end;
 		end;
 	end;
@@ -849,7 +835,6 @@ room2_Exhibit {
 		end
 		return false;
 	end;
-	-- found_in = {'room2_terassa'};
 	obj = {
 		room2_Photo {
 			-"фотография|страница|фото";
@@ -956,7 +941,6 @@ room2_Exhibit {
 		room2_Photo {
 			-"фотография|страница|фото";
 			nam = "room2_album_8";
-			score = false;
 			pageDsc = function()
 				if _'room2_s'.pl_high == 0 then
 					if _'room2_album_8':hasnt'seen_on_high' then
@@ -965,32 +949,17 @@ room2_Exhibit {
 						return "    Фотография опять смазанная и нечёткая. Ты уже не уверена, что тебе не привиделась та ужасная картина."
 					end
 				else
-					if not _'room2_album_8'.score then
+					local txt = "";
+					if _'room2_album_8':hasnt'seen_on_high' then
 						mp.score=mp.score+1;
-						_'room2_album_8'.score = true;
+						txt = " Внезапно ты понимаешь: в этом камне заключено чистое Зло! Оно позволило доставить себя из пустыни, а затем расправилось с участниками экспедиции. И, возможно, с тётей тоже. Камень нужно уничтожить!";
 					end;
-					return "    Фотография сделана в замкнутом помещении с чёрными стенами, полом и потолком. Все восемь участников экспедиции стоят перед объективом. Совершенно голые, с залитыми кровью плечами, они держат собственные головы в вытянутых вперёд руках. Глаза распахнуты в ужасе, рты перекошены в безмолвном крике.^^Камень вспыхивает изнутри красным светом."
+					return "    Фотография сделана в замкнутом помещении с чёрными стенами, полом и потолком. Все восемь участников экспедиции стоят перед объективом. Совершенно голые, с залитыми кровью плечами, они держат собственные головы в вытянутых вперёд руках. Глаза распахнуты в ужасе, рты перекошены в безмолвном крике.^^Камень вспыхивает изнутри красным светом." .. txt
 				end
 			end
 		};
 	};
 }:attr'openable,~open';
-
--- room2_Exhibit {
--- 	-"журнал";
--- 	nam = "room2_journal";
--- 	description = "Описание журнала с газетными вырезками и телеграммами.";
--- 	obj = {
--- 		obj {
--- 			-"газетные вырезки,газетные,вырезки,газеты";
--- 			description = "Вырезки из газет, подклеенные в журнал.";
--- 		};
--- 		obj {
--- 			-"телеграммы";
--- 			description = "Телеграммы, подклеенные в журнал.";
--- 		}
--- 	}
--- }
 
 room2_Exhibit {
 	-"карта|маршрут";
@@ -1057,59 +1026,48 @@ room2_Far {
 	found_in = {'room2_terassa','room2_on_terrasa'};
 }
 
--- room2_Far {
--- 	-"дом,особняк";
--- 	nam = "room2_house";
--- 	description = function (s)
--- 		return ""
--- 	end;
--- 	['before_Walk,Enter'] = function(s) mp:xaction("Walk", _"@s_to") end;
--- 	found_in = {'room2_terassa'};
--- }
-
 room2_Far {
 	-"пугало|руки,палки|глаза|мяч,уилсон,рот|старый халат, халат";
 	nam = "room2_scarecrow";
+	friendly = false;
 	description = function (s)
 		local _txt = s:hasnt'seen' and " (Уилсон?!)" or ""
+		local _needhelp = s.friendly and "^Тебе хочется как-то помочь пугалу в его непростой миссии." or ""
 		if _'room2_s'.pl_high == 0 then
-			return "Большое старое пугало встаёт над высокой травой огорода, раскинув в стороны длинные руки-палки, словно последний защитник, вставший между лесом и домом. На него надет потрёпанный рабочий халат с полустёртым логотипом. Вместо головы — дырявый волейбольный мяч".._txt..", на котором углём нарисованы круглые чёрные глаза и зубастый рот."
+			return "Большое старое пугало встаёт над высокой травой огорода, раскинув в стороны длинные руки-палки, словно последний защитник, вставший между лесом и домом. На него надет потрёпанный рабочий халат с полустёртым логотипом. Вместо головы — дырявый волейбольный мяч".._txt..", на котором углём нарисованы круглые чёрные глаза и зубастый рот." .. _needhelp
 		else
 			local _t = s:has'seen_before_high' and " ещё более" or ""
-			return "Старое пугало".._t.." походит на последнего защитника, оставшегося от некогда большой армии. Он стойко возвышается над змеящимися стеблями сорной травы. Он раскинул руки в стороны, чтобы то ли не пустить лес к людям, то ли удержать людей от похода в чащу. Он пытается обернуться и гримасничает — угольные глаза беспрестанно меняют размер и сдвигаются по голове-мячу".._txt..", а зубастый рот то открывается, то закрывается."
+			return "Старое пугало".._t.." походит на последнего защитника, оставшегося от некогда большой армии. Он стойко возвышается над змеящимися стеблями сорной травы. Он раскинул руки в стороны, чтобы то ли не пустить лес к людям, то ли удержать людей от похода в чащу. Он пытается обернуться и гримасничает — угольные глаза беспрестанно меняют размер и сдвигаются по голове-мячу".._txt..", а зубастый рот то открывается, то закрывается." .. _needhelp
 		end				
 	end;
-	before_Wave = function(s) mp:xaction("WaveHands",s) end;
 	before_WaveHands = function(s)
 		if _'room2_s'.pl_high == 1 then
-			return "Ты вскидываешь руку и что есть силы машешь пугалу. И оно — должно быть, от порыва ветра (какого ветра?) — поворачивается туда-сюда, махнув тебе рукавом халата в ответ."
+			if not s.friendly then
+				s.friendly = true;
+				return "Ты вскидываешь руку и что есть силы машешь пугалу. И оно — должно быть, от порыва ветра (какого ветра?) — поворачивается туда-сюда, махнув тебе рукавом халата в ответ."
+			else
+				return "Ты снова машешь пугалу, а оно отвечает. Почему-то тебе от этого радостно."
+			end
 		end
 		return "Ты помахала руками, но пугало не ответило.";
 	end;
 	before_Walk = "Пожалуй, нет.";
+	["life_Give,Show"] = function(s,w)
+		if s.friendly then
+			p(w:Noun'им' .. " явно не поможет пугалу в его нелёгком деле защиты дома.");
+		else
+			return false
+		end
+	end;
+	before_Shoot = function(s, w)
+		if not w and pl:have('gun') then
+			w = _'gun';
+		end
+		if(w == _'gun') then
+			return "Ты точно не решишь своих проблем, застрелив пугало."
+		else
+			return false
+		end;
+	end;
 	found_in = {'room2_terassa','room2_on_terrasa'};
 }
-
-
-
-
-
--- Менять нельзя!!!! Это не ваш предмет!!!  Вы не знаете как он выглядит, его придумает другой автор!!!
---obj {
---	-"большой ключ,ключ",
---	nam = "bigkey",
---	description = "Большой ключ.",
---}
-
-room {
-	nam = 'test_room1';
-}
-
-
-
-
-
-
-
-
-
