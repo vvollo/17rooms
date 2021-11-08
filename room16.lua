@@ -107,6 +107,40 @@ room {
 			return false
 		end
 	end;
+	before_Attack = function(s, w)
+		if(_'room16_wardrobe'.state >= 4) and (w == std.me()) then
+			p "Похоже, шкаф заколдован так, что самоубийство в нём невозможно."
+		else
+			return false
+		end
+	end;
+	before_Cut = function(s, w, i)
+		if not i and pl:have('dagger') then
+			i = _'dagger';
+		end
+		if(_'room16_wardrobe'.state >= 4) and (w == std.me()) and (i == _'dagger') then
+			p "Кинжал проходит сквозь тебя, не причинив ни малейшего вреда."
+			mp:xaction('Attack', pl)
+		else
+			return false
+		end
+	end;
+	before_Shoot = function(s, w, i)
+		if not i and pl:have('gun') then
+			i = _'gun';
+		end
+		if (i == _'gun') and not _'gun'.loaded then
+			p "Патроны кончились."
+			return
+		end
+		if(_'room16_wardrobe'.state >= 4) and (w == std.me()) and (i == _'gun') then
+			_'gun'.loaded = false;
+			p "Пуля проходит сквозь тебя, не причинив ни малейшего вреда."
+			mp:xaction('Attack', pl)
+		else
+			return false
+		end
+	end;
 	obj = { 'room16_wardrobe','room16_parquet','room16_bookstand','room16_pedestal','room16_slit','room16_walls' };
 --	obj = { 'statuetka','book','dagger','room16_wardrobe','room16_parquet','room16_bookstand','room16_pedestal','room16_slit' };
 	--obj = { 'room16_wardrobe','room16_parquet','room16_bookstand','room16_pedestal','room16_slit' };
@@ -1342,7 +1376,7 @@ obj {
 			remove(_'room16_c2',_'room16_wardrobe')
 			remove(_'room16_c3',_'room16_wardrobe')
 			remove('kitchen_knife');
-			remove('room4_fluet');
+			remove('flute');
 			remove('lamp');
 			p ('^^{$fmt em|(Игра сохранена)}')
 			instead.autosave()
@@ -1548,31 +1582,39 @@ obj {
 		end;
 		if(_'room16_AI'.daemon_stage == 5) then
 			DaemonStop 'room16_AI';
-			walk 'room16_cutsceneB'
+			walk 'ending_victim_wait'
 		end;
 		if(_'room16_AI'.daemon_stage == 6) then
 			DaemonStop 'room16_AI';
 			if pl:where() ^ 'room16_mystical' then
-				walk 'room16_cutsceneC'
+				walk 'ending_victim_attack'
 			else
-				walk 'room16_cutsceneC_out'
+				walk 'ending_victim_attack_out'
 			end;
 		end;
 		if(_'room16_AI'.daemon_stage == 7) then
 			DaemonStop 'room16_AI';
-			walk 'room16_cutsceneD'
+			walk 'ending_victim_cut'
 		end;
 		if(_'room16_AI'.daemon_stage == 8) then
 			DaemonStop 'room16_AI';
 			if not (pl:where() ^ 'room1_kryltco' or pl:where() ^ 'room2_terassa' or pl:where() ^ 'room2_on_terrasa') then
-				walk 'room16_cutsceneE'
+				if mp.event == 'Shoot' then
+					walk 'ending_kill_gun'
+				else
+					walk 'ending_kill_dagger'
+				end
 			else
-				walk 'room16_cutsceneE_out'
+				if mp.event == 'Shoot' then
+					walk 'ending_kill_gun_out'
+				else
+					walk 'ending_kill_dagger_out'
+				end
 			end;
 		end;
 		if(_'room16_AI'.daemon_stage == 9) then
 			DaemonStop 'room16_AI';
-			walk 'room16_cutsceneF'
+			walk 'ending_fourthwall'
 		end;
 		if(_'room16_AI'.daemon_stage == 10) then
 			p (' -- Ха-ха-ха! Глупышка, ты попалась в ловушку! Теперь ты навеки будешь заточена в этом шкафу.')
@@ -1643,11 +1685,11 @@ dlg {
 		[[-- Значит, приставы завербовали и тебя. Но знаешь, что я тебе скажу?]],
 		{
 			'Какие ещё приставы?',
-			function() p [[-- Не перебивай старших! Да, я не платила за коммуналку уже десять лет, и да, я принимала ванну два раза в день, и да, я майнила биткоины, ну и что!]]; walk 'room16_cutsceneA'; end;
+			function() walk 'room16_cutsceneA'; end;
 		},
 		{
 			'Меня никто не вербовал!',
-			function() p [[-- Не перебивай старших! Да, я не платила за коммуналку уже десять лет, и да, я принимала ванну два раза в день, и да, я майнила биткоины, ну и что!]]; walk 'room16_cutsceneA'; end;
+			function() walk 'room16_cutsceneA'; end;
 		},
 	};
 }
@@ -1658,15 +1700,15 @@ dlg {
 		[[-- Значит, приставы завербовали и тебя. Но знаешь, что я тебе скажу?]],
 		{
 			'Какие ещё приставы?',
-			function() p [[-- Не перебивай старших! Да, я не платила за коммуналку уже десять лет, и да, я принимала ванну два раза в день, и да, я майнила биткоины, ну и что!]]; walk 'room16_cutsceneA'; end;
+			function() walk 'room16_cutsceneA'; end;
 		},
 		{
 			'Меня никто не вербовал!',
-			function() p [[-- Не перебивай старших! Да, я не платила за коммуналку уже десять лет, и да, я принимала ванну два раза в день, и да, я майнила биткоины, ну и что!]]; walk 'room16_cutsceneA'; end;
+			function() walk 'room16_cutsceneA'; end;
 		},
 		{
 			'Тётушка Агата! Это Настя, ты что?',
-			function() p [[-- Не перебивай старших! Да, я не платила за коммуналку уже десять лет, и да, я принимала ванну два раза в день, и да, я майнила биткоины, ну и что!]]; walk 'room16_cutsceneA'; end;
+			function() walk 'room16_cutsceneA'; end;
 		},
 	};
 }
@@ -1674,6 +1716,7 @@ dlg {
 cutscene {
 	nam = 'room16_cutsceneA';
 	text = {
+		"-- Не перебивай старших! Да, я не платила за коммуналку уже десять лет, и да, я принимала ванну два раза в день, и да, я майнила биткоины, ну и что!";
 		"В глазах тётушки нет ничего, кроме слепой ярости по отношению к судебным приставам, и эта ярость направлена на тебя.";
 		" -- Никто не должен был найти меня, девчонка! -- она выковыривается из шкафа, растопырив длинные когти.";
 		" -- Абракадабра! Фу ты, пх'нглуи, мглв'нафх, алохомора, пламя Удуна, КФ937, мать его! -- она кричит что-то невразумительное, и стены содрогаются.";
@@ -1684,95 +1727,27 @@ cutscene {
 }
 
 cutscene {
-	nam = 'room16_cutsceneB';
-	text = {
-		"Одним махом тётя Агата прыгает на тебя, сбивая с ног.";
-		"Она вонзает свои когти тебе в живот, а клыками впивается в шею.";
-		"Ты даже не успеваешь пожалеть о том, что приехала в дом к своей тёте.";
-	};
-	next_to = 'room16_happyend';
-}
-
-cutscene {
-	nam = 'room16_cutsceneC';
-	text = {
-		"Ты подбегаешь к тёте и пытаешься сбить её с пюпитра, но она оказывается ловчее, и одним махом прыгает на тебя, сбивая с ног.";
-		"Она вонзает свои когти тебе в живот, а клыками впивается в шею.";
-		"Ты даже не успеваешь пожалеть о том, что приехала в дом к своей тёте.";
-	};
-	next_to = 'room16_happyend';
-}
-
-cutscene {
-	nam = 'room16_cutsceneC_out';
-	text = {
-		"Вместо того, чтобы убегать, ты решаешь встретить тётю лицом к лицу.";
-		"Плохая идея. Тётя оказывается ловчее, и одним махом прыгает на тебя, сбивая с ног.";
-		"Она вонзает свои когти тебе в живот, а клыками впивается в шею.";
-		"Ты даже не успеваешь пожалеть о том, что приехала в дом к своей тёте.";
-	};
-	next_to = 'room16_happyend';
-}
-
-cutscene {
-	nam = 'room16_cutsceneD';
-	text = {
-		"Как сумасшедшая, ты бежишь на тётю с твёрдым намерением её зарезать.";
-		"Увы, она не дура, и одним махом прыгает на тебя, сбивая с ног.";
-		"Она вонзает свои когти тебе в живот, а клыками впивается в шею.";
-		"Ты даже не успеваешь пожалеть о том, что приехала в дом к своей тёте.";
-	};
-	next_to = 'room16_happyend';
-}
-
-cutscene {
-	nam = 'room16_cutsceneE';
-	text = {
-		"Ты берёшь кинжал за лезвие, как это делают циркачи.";
-		"Тётя всё ковыряет свои когти и даже не замечает, как ты прицеливаешься.";
-		"Один бросок -- и кинжал по самую рукоять уходит куда-то в тёткины лохмотья, а она падает на паркетный пол замертво.";
-		" -- Какой-то нелепый конец, -- думаешь ты вслух.";
-		"Теперь придётся как-то объясняться с полицией. Вряд ли они поверят, что ты укокошила тётю не ради наследства.";
-		"Твой взгляд падает на щель под потолком.";
-		"Закатный луч падает на тебя в ответ.";
-	};
-	next_to = 'room16_badend';
-}
-
-cutscene {
-	nam = 'room16_cutsceneE_out';
-	text = {
-		"Ты берёшь кинжал за лезвие, как это делают циркачи.";
-		"Тётя всё ковыряет свои когти и даже не замечает, как ты прицеливаешься.";
-		"Один бросок -- и кинжал по самую рукоять уходит куда-то в тёткины лохмотья, а она падает на землю замертво.";
-		" -- Какой-то нелепый конец, -- думаешь ты вслух.";
-		"Теперь придётся как-то объясняться с полицией. Вряд ли они поверят, что ты укокошила тётю не ради наследства.";
-		"Твой взгляд падает на небо.";
-		"Закатный луч падает на тебя в ответ.";
-	};
-	next_to = 'room16_badend';
-}
-
-cutscene {
-	nam = 'room16_cutsceneF';
-	text = {
-		"Ты выходишь из комнаты, войдя в четвёртую стену, которую сама же и разрушила.";
-		"Тётя Агата попыталась последовать за тобой, но пролом в стене оттолкнул её и отправил обратно в шкаф.";
-		"Дверцы шкафа захлопнулись.";
-		"Затем пролом сам собой затянулся, а кинжал исчез.";
-		"Непонятно, что дальше будет с тётушкой.";
-		"Может быть, она даже продаст пару биткоинов и заплатит за коммунальные услуги.";
-		"А может, она спрячется ещё лучше, расставит ловушки и будет дожидаться судебных приставов при оружии.";
-		"Но ты точно знаешь одно — больше ты не желаешь иметь с этим ничего общего.";
-	};
-	next_to = 'room16_theend';
-}
-
-cutscene {
 	nam = 'room16_cutsceneRun';
 	text = {
 		"Ты со всех ног выбегаешь из комнаты.";
 		"Тётка не отстаёт!";
+	};
+	next_to = function()
+		if not _'gun'.magneted and _'gun':has'scenery' then
+			take('gun');
+			_'gun':attr'~scenery';
+			walk 'room16_take_gun';
+		else
+			DaemonStart 'room16_AI';
+			walk 'room14_secondfloor';
+		end
+	end;
+}
+
+cutscene  {
+	nam = 'room16_take_gun';
+	text = {
+		"По пути ты хватаешь из витрины пистолет.";
 	};
 	next_to = function() DaemonStart 'room16_AI'; walk 'room14_secondfloor'; end;
 }
@@ -1791,6 +1766,20 @@ obj {
 	found_in = {'room1_kryltco', 'room2_terassa', 'room2_on_terrasa', 'room3_hall', 'room4_kladovka', 'room5_podval', 'room6_kitchen', 'room7_stolovaya', 'room8_garderob', 'room9_garazh', 'room10_zal', 'room11_kabinet', 'room12_gostinnaya', 'room13_library', 'room14_secondfloor', 'room15_bedroom', 'room16_mystical', 'room17_cherdak'};
 	before_ThrownAt = function(s,w)
 		if(w == _'dagger') then
+			if _'room12_ноутбук'.broken then
+				p 'Ну убьёшь ты сейчас тётю, и что? Не она -- источник всех проблем.'
+				return
+			end;
+			_'room16_AI'.daemon_stage = 8
+		else
+			p 'Ты серьёзно?'	
+		end;
+	end;
+	before_Shoot = function(s, w)
+		if not w and pl:have('gun') then
+			w = _'gun';
+		end
+		if(w == _'gun') then
 			if _'room12_ноутбук'.broken then
 				p 'Ну убьёшь ты сейчас тётю, и что? Не она -- источник всех проблем.'
 				return
@@ -1925,27 +1914,3 @@ obj {
 		end;
 	end;
 }:attr 'static, scenery'
-
-room {
-	-"конец";
-	nam = 'room16_happyend';
-	title = "Конец";
-	dsc = 'Вот и сказочке конец. Ты же сохранила игру, Настенька? (Концовка №3/7)';
-	noparser = true;
-}
-
-room {
-	-"конец";
-	nam = 'room16_badend';
-	title = "Конец";
-	dsc = 'Вот и сказочке конец. Может, надо было обойтись без крови? Ты же сохранила игру, Настенька? (Концовка №2/7)';
-	noparser = true;
-}
-
-room {
-	-"конец";
-	nam = 'room16_theend';
-	title = "Конец";
-	dsc = 'Вот и сказочке конец. Выходит, всё было зря? Ты же сохранила игру, Настенька? (Концовка №5/7)';
-	noparser = true;
-}
