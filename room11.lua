@@ -39,8 +39,13 @@ room {
 		DaemonStop('kabinet_fenestro')
 		walkin 'room12_gostinnaya';
 	end;
+	out_to = function()
+		DaemonStop('kabinet_fenestro')
+		walkin 'room12_gostinnaya';
+	end;
 	before_Play = function(s,w)
-		if w == _'room4_fluet' and _'kabinet_notelist'.was_read then
+		if w == _'flute' and _'kabinet_notelist'.was_read then
+			mp:check_held(w);
 			if not s.play_score then
 				mp.score=mp.score+1;
 				s.play_score = true;
@@ -112,7 +117,7 @@ room {
 					before_Enter = 'Зачем же?';
 				}:attr 'scenery';
 				obj {
-					-"компьютер|ЭВМ";
+					-"компьютер,комп|ЭВМ";
 					nam = 'kabinet_komputilo';
 					description = 'Ты не разбираешься в компьютерах, но кажется, что это либо "Правец" либо "Роботрон"...';
 					before_Take = function(s)
@@ -162,6 +167,7 @@ room {
 						end;
 					end;
 					before_Enter = 'Это не нужно.';
+					before_Play = 'Компьютерные игры -- пустая трата времени.';
 				}:attr 'scenery';
 				obj {
 					-"бумаги/жр, мн|стопка бумаг";
@@ -630,7 +636,7 @@ room {
 					before_Push = 'Нет. Пусть висит где висит.';
 					before_Taste = 'Несмотря на то, что в зеркало можно смотреться, это не делает его менее пыльным.';
 					before_Talk = 'Возможно, стоит сказать своему отражению что-то конкретное.';
-					['before_Ask, Ask_to, AskFor, Tell'] = function(s,w)
+					['before_Ask, AskTo, AskFor, Tell, Answer'] = function(s,w)
 						if s.donated then
 							p 'Ты уже сказала зеркалу всё, что намеревалась.';
 							return true;
@@ -1072,15 +1078,6 @@ room {
 			description = 'Осмотреть музыку? Оригинально.';
 		}:attr 'scenery';
 }
-
-
---obj {
---	-"таинственный кинжал,кинжал";
---	nam = "dagger";
---	description = "Таинственный кинжал.";
---}
-
-
 
 		obj {
 			-"птица";
