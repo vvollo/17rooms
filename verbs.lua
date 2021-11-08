@@ -154,7 +154,7 @@ mp.msg.Shoot.SHOOT = "{#Me/им} не {#word/может,#me} стрелять в
 mp.msg.Shoot.SHOOT2 = "{#Me/им} не {#word/может,#me} стрелять в {#first/вн} из {#second/рд}."
 
 
-Verb {
+--[[Verb {
    "#Frotz",
    "фроц, frotz",
    "Frotz",
@@ -222,4 +222,4 @@ function mp:Rezrov(w)
     end
     w:attr'open';
     w:attr'~locked';
-end
+end]]
