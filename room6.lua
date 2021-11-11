@@ -1,7 +1,4 @@
--- Доступное пространство имён для объектов - все имена объектов должны начинаться с "room6_" или "kitchen_"
--- Все описания можно менять
--- Задача: Игрок должен найти в локации matches, также игрок может открыть дверь на западе предметом longkey, игрок может прийти в локацию как с ним, так и без него
-mp.clear_on_move = false; -- GORAPH
+mp.clear_on_move = false;
 
 room {
     -"кухня,комната";
@@ -15,7 +12,6 @@ room {
 	mp.compare_len=5;	-- чтобы "хлеб" не воспринимался как "хлебница"
     end;
     n_to = 'kitchen_door_north';
-    -- n_to = 'room6_test';
     e_to = 'kitchen_door_west';
     s_to = function(s)
         p"Вдоль южной стены простирается столешница, но никакого выхода там нет.";
@@ -40,7 +36,7 @@ room {
         return false;
     end;
     before_Drop = function(s, i)
-        if i ^ 'kitchen_avocado' or i ^ 'kitchen_avocado_pieces' or i ^ 'kitchen_bread' or i ^ 'kitchen_bread_piece' or i ^ 'kitchen_sandwich' then
+	if i:has'edible' then
             p"Не бросай еду на пол.";
             return true;
         end;
@@ -50,26 +46,6 @@ room {
     before_No = "Ты хочешь ответить, но старик не услышит тебя.";
     obj = {'kitchen_main_table', 'kitchen_grass', 'kitchen_round_table', 'kitchen_lift', 'kitchen_door_north', 'kitchen_door_west', 'kitchen_button_up', 'kitchen_button_down', 'kitchen_old_man', 'kitchen_window', 'kitchen_forest', 'kitchen_walls', 'kitchen_ceiling', 'kitchen_pec', 'kitchen_cat'};
 }
-
-room {
-    nam = "room6_test";
-    title = "Тестовая комната";
-    dsc = "Пройдите на юг.";
-    s_to = 'room6_kitchen';
-    obj = {'longkey'};
-}
-
--- ## OPTIONAL / NICE TO HAVE
--- cut walls with knife
--- обозлённый дед может триггернуть лифт наверх в момент когда сделаешь бутерброд
--- "сказать"
--- "сказать коту мяу"
--- "сказать старику привет"
--- реакции старика на посланные предметы
--- отрезать деда ножом
--- добавить круглую косточку
--- добавить вместо "в кухонном лифте - внутри" по отношению к находящимся там предметам
--- дед периодически напоминает о задании
 
 function kitchen_drop_items()
     if inside('kitchen_avocado', pl) then
@@ -109,7 +85,7 @@ door {
     nam = "kitchen_door_west";
     door_to = function(s, d)
         kitchen_drop_items()
-        return 'room4_kladovka'; -- ! GORAPH
+        return 'room4_kladovka';
     end;
     with_key = 'longkey';
     after_Unlock = function (s)
@@ -124,7 +100,7 @@ door {
     nam = "kitchen_door_north";
     door_to = function(s, d)
         kitchen_drop_items()
-        return 'room7_stolovaya'; -- ! GORAPH
+        return 'room7_stolovaya';
     end;
 }: attr 'concealed,open,openable,static';
 
@@ -150,7 +126,7 @@ obj {
     -"нож";
     nam = "kitchen_knife";
     description = "Острый кухонный нож с деревянной ручкой.";
-}:attr '';
+}
 
 obj {
     -"прямоугольный стол,стол";
@@ -180,7 +156,6 @@ obj {
 obj {
     -"корзина для фруктов,корзина";
     nam = "kitchen_basket";
-    -- dsc = "На прямоугольном деревянном столе посреди комнаты стоит корзина для фруктов.";
     description = function (s)
         p"Пологая плетёная корзина для хранения фруктов.";
         mp:content(s);
@@ -200,8 +175,9 @@ obj {
             p"Чем ты хочешь разрезать авокадо?";
             return true;
         end;
-        mp:check_held(s);
-        mp:check_held(w);
+	if mp:check_held(s) or mp:check_held(w) then
+		return
+	end;
         if w ~= nil then
             if w ^ "kitchen_knife" then
                 p"Ты снимаешь кожуру с авокадо, выбрасываешь в окно круглую косточку и разрезаешь его на аккуратные ломтики.";
@@ -231,7 +207,6 @@ obj {
 obj {
     -"хлебница";
     nam = "kitchen_breadbox";
-    -- dsc = "На столешнице стоит хлебница.";
     description = function(s)
         p "Продолговатая, голубого оттенка советская хлебница, которую можно открыть плавным движением. ";
         if s:has 'open' then
@@ -239,6 +214,7 @@ obj {
         else
             p"Она закрыта.";
         end;
+        mp:content(s);
     end;
     before_Take = "Она слишком громоздка, чтобы носить с собой. Да и зачем она тебе?";
     obj = {'kitchen_bread'};
@@ -268,8 +244,9 @@ obj {
             p"Чем ты хочешь отрезать от хлеба?";
             return true;
         end;
-        mp:check_held(s);
-        mp:check_held(w);
+	if mp:check_held(s) or mp:check_held(w) then
+		return
+	end;
         if w ~= nil then
             if w ^ "kitchen_knife" then
                 p"Ты отрезаешь кусок хлеба и кладёшь буханку обратно в хлебницу.";
@@ -376,7 +353,17 @@ obj {
         end;
         return false;
     end;
-    after_Open = "Ты открываешь дверцу лифта.";
+    after_Open = function(s)
+	p "Ты открываешь дверцу лифта.";
+	mp:content(s);
+    end;
+    after_Close = function(s)
+	p "Ты закрываешь дверцу лифта.";
+	if (not _'kitchen_old_man'.fed or (_'kitchen_old_man'.mentioned_matches and not _'kitchen_old_man'.received_lighter)) and _'kitchen_old_man'.annoyed then
+		_'kitchen_lift'.loc = 'up';
+		p"^^«Я устал ждать!» — внезапно рявкает дед, и лифт уезжает наверх.";
+	end;
+    end;
 }:attr 'static,container,openable,~open';
 
 obj {
@@ -408,7 +395,7 @@ obj {
     description = "Красная круглая кнопка, указывающая вниз.";
     before_Push = function(s)
         if _'kitchen_lift':has 'open' then
-            p"Ты нажимаешь кнопку, но ничего не происходит.";
+            p"Ты нажимаешь кнопку, раздаётся щелчок, но ничего не происходит.";
             return true;
         end;
         if _'kitchen_lift'.loc == 'down' then
@@ -439,7 +426,22 @@ obj {
     before_Default = function(s, ev, w)
         p"Старика здесь нет, он общается с тобой через репродуктор, видимо, из другой комнаты.";
     end;
-    before_Talk = "Ты пытаешься заговорить с дедом, но он тебя не слышит — связь с ним, увы, односторонняя.";
+    ["before_Talk, Ask, AskTo, AskFor, Tell, Answer"] = "Ты пытаешься заговорить с дедом, но он тебя не слышит — связь с ним, увы, односторонняя.";
+    ["before_Attack, ThrownAt, Cut, Tear, Shoot"] = "Ты не можешь убить старика, потому что его здесь нет... Да, и ещё потому что ты не убийца!";
+	itemReaction = function(s)
+		if inside('kitchen_avocado', 'kitchen_lift') or inside('kitchen_avocado_pieces', 'kitchen_lift') or inside('kitchen_bread', 'kitchen_lift') or inside('kitchen_bread_piece', 'kitchen_lift') or inside('kitchen_knife', 'kitchen_lift') then
+			return "Намекаешь, чтобы я сам себе готовил бутерброд? Ага, щас!";
+		elseif inside('kitchen_candy', 'kitchen_lift') then
+			return "Ты думаешь, если бы я сам хотел съесть эту конфету, то отправил бы её тебе?";
+		elseif inside('lamp', 'kitchen_lift') or inside('kerosin', 'kitchen_lift') then
+			return "У меня тут достаточно светло!";
+		elseif inside('flute', 'kitchen_lift') then
+			return "И с чего ты решила, что мне не хватает музыки, а?";
+		elseif inside('statuetka', 'kitchen_lift') or inside('book', 'kitchen_lift') or inside('dagger', 'kitchen_lift') then
+			return "Да ты с ума сошла! Это древние мистические предметы, нельзя их разбрасывать где попало!";
+		end
+		return false;
+	end;
     daemon = function(s)
         if where(pl) ~= _'room6_kitchen' then
             return;
@@ -500,11 +502,20 @@ obj {
                             else
                                 s.counter_lift_interaction_2 = 100;
                                 _'kitchen_lift':attr '~open';
+			        local _reaction = s:itemReaction();
                                 if s.annoyed == true then
-                                    p "«Опять ты надо мной издеваешься!» — он со злостью захлопывает дверцу лифта со своей стороны.";
+				    if _reaction then
+					p ("«" .. _reaction .. " Опять ты надо мной издеваешься!» — он со злостью захлопывает дверцу лифта со своей стороны.");
+				    else
+					p "«Опять ты надо мной издеваешься!» — он со злостью захлопывает дверцу лифта со своей стороны.";
+				    end
                                 else
                                     s.annoyed = true;
-                                    p"«Что за чёрт побери! Отправь мне чем я смогу прикурить», — он громко закрывает дверь лифта со своей стороны.";
+				    if _reaction then
+					p ("«" .. _reaction .. " Просто отправь мне чем я смогу прикурить», — он громко закрывает дверь лифта со своей стороны.");
+				    else
+					p"«Что за чёрт побери! Отправь мне чем я смогу прикурить», — он громко закрывает дверь лифта со своей стороны.";
+				    end
                                 end;
                             end;
                         elseif s.counter_lift_interaction_2 == 2 then
@@ -525,6 +536,10 @@ obj {
                             DaemonStop('kitchen_old_man');
                         end;
                     end;
+		else
+		    if not s.received_lighter and (s.counter_since_fed % 15) == 0 then
+			p "«Я всё ещё жду спички, они должны быть рядом с печью», — напоминает старик.";
+		    end;
                 end;
                 return;
             end;
@@ -553,7 +568,12 @@ obj {
                             s.counter_lift_interaction = 100;
                             _'kitchen_lift':attr '~open';
                             s.annoyed = true;
-                            p "«Что это такое? Ты издеваешься?» — он злобно захлопывает дверцу лифта.";
+			    local _reaction = s:itemReaction();
+			    if _reaction then
+				p ("«" .. _reaction .. " Ты издеваешься?» — он злобно захлопывает дверцу лифта.");
+			    else
+				p "«Что это такое? Ты издеваешься?» — он злобно захлопывает дверцу лифта.";
+			    end
                         end;
                     elseif s.counter_lift_interaction == 2 then
                         move('kitchen_candy', 'kitchen_lift');
@@ -565,6 +585,10 @@ obj {
                         mp.score=mp.score+1;
                     end;
                 end;
+	    else
+		if not s.fed and (s.counter % 15) == 0 then
+			p "«Я всё ещё жду свой бутерброд с авокадо», — напоминает старик.";
+		end;
             end;
         end;
     end;
@@ -607,27 +631,16 @@ obj {
     -"кот,котик|бабочка";
     seen = false;
     nam = "kitchen_cat";
-    description = function(s)
-        s.seen = true;
-        p"Беззаботный белый котик с рыжими пятнами. На шее у него висит чёрная бабочка. Признаться, тебе хотелось бы быть им, а не решать загадки этого дома.";
-    end;
+    description = "Беззаботный белый котик с рыжими пятнами. На шее у него висит чёрная бабочка. Признаться, тебе хотелось бы быть им, а не решать загадки этого дома.";
     before_Default = function(s, ev, w)
         s.seen = true;
         if ev == 'Exam' then
-            p"Беззаботный белый котик с рыжими пятнами. На шее у него висит чёрная бабочка. Признаться, тебе хотелось бы быть им, а не решать загадки этого дома."
-            return true;
+            return false;
         end;
         p"Не стоит беспокоить котика без причины.";
     end;
     before_ThrownAt = function(s, w)
-        if w ^ "kitchen_candy" then
-            p"Ты бросаешь конфету за окошку коту. Он игриво хватает конфету и убегает с ней в лес.";
-            remove 'kitchen_candy';
-            remove 'kitchen_cat';
-            mp.score=mp.score+1;
-        else
-            p"Это не нужно давать коту, может, попробовать что-то другое?";
-        end;
+	mp:xaction("Give", w, s);
     end;
     life_Give = function(s, w)
         if w ^ "kitchen_candy" then
@@ -636,9 +649,33 @@ obj {
             remove 'kitchen_cat';
             mp.score=mp.score+1;
         else
+	    s.seen = true;
             p"Это не нужно давать коту, может, попробовать что-то другое?";
         end;
     end;
+	before_Take = function(s)
+		s.seen = true;
+		p 'Я ПРОСТО ПРИШЕЛ ЗАБРАТЬ СВОЕГО КОТА... А, стоп, это не та игра.'
+	end;
+	before_Tell = function(s, w)
+		s.seen = true;
+		if w:find "мяу" or w:find "мур" or w:find "кис" or w:find "гав" then
+			p 'Кот посмотрел на тебя с презрением.'
+		else
+			p 'Кот потягивается на солнышке. Ему не до тебя.'
+		end
+	end;
+	before_Shoot = function(s, w)
+		s.seen = true;
+		if not w and pl:have('gun') then
+			w = _'gun';
+		end
+		if(w == _'gun') then
+			p 'ДА ЧТО ТЫ ЗА МОНСТР??? Ты полностью заслуживаешь того, что с тобой сейчас произойдёт!'
+		else
+			p 'Котеньку?!!! К счастью, ты не вооружена.'
+		end;
+	end;
 }:attr 'static,concealed,animate';
 obj {
     -"лес";
@@ -649,6 +686,16 @@ obj {
     -"стены";
     nam = "kitchen_walls";
     description = "Стены, покрытые оранжевой краской.";
+	before_Cut = function(s,w)
+		if w and mp:check_held(w) then
+			return
+		end
+		if w == _'dagger' or w == _'kitchen_knife' then
+			p "Ты хочешь вырезать на стене неприличное слово, но вовремя вспоминаешь, что уже вышла из дошкольного возраста.";
+		else
+			return false
+		end
+	end;
 }:attr 'static,concealed';
 obj {
     -"потолок";
@@ -688,7 +735,6 @@ obj {
         end
 }:attr '';
 
--- Менять нельзя!!!! Это не ваш предмет!!! Вы не знаете как он выглядит, его придумает другой автор!!! -- GORAPH
 obj {
     -"спички|спичка";
     nam = "matches";
