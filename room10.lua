@@ -1,6 +1,3 @@
--- Доступное пространство имён для объектов - все имена объектов должны начинаться с "room10_" или "zal_"
--- Все описания можно менять
--- Задача: Игрок должен найти в локации предмет lamp. Да-да, get lamp
 room {
 	nam = "room10_zal";
 	title = "Зал";
@@ -247,7 +244,6 @@ room {
 	};
 }
 
--- Менять нельзя!!!! Это не ваш предмет!!! Вы не знаете как он выглядит, его придумает другой автор!!!
 obj {
 	-"керосиновая лампа, лампа, старая лампа";
 	nam = "lamp";
@@ -268,8 +264,8 @@ obj {
         before_Fill = function(s,w)
 	  if not w and _'kerosin':access() then
             mp:check_held(_'kerosin');
-	  elseif w then
-            mp:check_held(w);
+	  elseif w and mp:check_held(w) then
+            return
 	  end;
           if not w and not have('kerosin') then
             p "Тебе нечем наполнить лампу!";
@@ -311,21 +307,3 @@ obj {
           return false;
         end;
 };
-
-VerbExtend {"#Fill",
-	"в {noun}/вн {noun}/вн : Fill",
-	"~ внутрь {noun}/рд {noun}/вн : Fill",
-	"~ {noun}/вн {noun}/тв : Fill",
-	"~ {noun}/вн в {noun}/вн : Fill reverse",
-	"~ {noun}/вн внутрь {noun}/рд : Fill reverse",
-	"~ {noun}/тв {noun}/вн : Fill reverse"
-}
-
-function mp:after_Fill(w,wh)
-	if wh then
-		mp:message 'Fill.FILL2'
-	else
-		mp:message 'Fill.FILL'
-	end
-end
-mp.msg.Fill.FILL2 = "Наполнять {#first/вн} {#second/тв} бессмысленно."
