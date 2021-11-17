@@ -44,7 +44,7 @@ end
 
 VerbExtendWord {
 	"#Eat",
-	"[|с|об|по]гры/зть,[|об]глода/ть"
+	"[|с|об|по|раз]гры/зть,[|об]глода/ть"
 }
 
 VerbExtendWord {
@@ -68,6 +68,19 @@ VerbExtend {
 	"~ на {noun}/вн {noun}/вн : PutOn reverse",
 }
 
+VerbExtendWord {
+	"#Drop",
+	"повес/ить,остав/ить"
+}
+
+VerbExtend {
+	"#Drop",
+	'~ {noun}/вн,held на {noun}/пр,2: PutOn',
+	"~ {noun}/вн,held в|во {noun}/пр,2,inside : Insert",
+	'~ на {noun}/пр,2 {noun}/вн: PutOn reverse',
+	"~ в|во {noun}/пр,2 {noun}/вн : Insert reverse",
+}
+
 
 VerbExtend {
 	"#Wave",
@@ -75,7 +88,7 @@ VerbExtend {
 	"~ {noun}/дт руками : WaveHands",
 	"~ руками {noun}/дт : WaveHands",
 }
-function mp:after_WaveHands(w,wh)
+function mp:after_WaveHands(w)
 	if w then
 		mp:message 'WaveHands.WAVE2'
 	else
@@ -83,6 +96,24 @@ function mp:after_WaveHands(w,wh)
 	end
 end
 mp.msg.WaveHands.WAVE2 = "{#Me} глупо {#word/помахать,прш,#me} руками {#first/дт}."
+
+
+VerbExtend {"#Fill",
+	"в {noun}/вн {noun}/вн : Fill",
+	"~ внутрь {noun}/рд {noun}/вн : Fill",
+	"~ {noun}/вн {noun}/тв : Fill",
+	"~ {noun}/вн в {noun}/вн : Fill reverse",
+	"~ {noun}/вн внутрь {noun}/рд : Fill reverse",
+	"~ {noun}/тв {noun}/вн : Fill reverse"
+}
+function mp:after_Fill(w,wh)
+	if wh then
+		mp:message 'Fill.FILL2'
+	else
+		mp:message 'Fill.FILL'
+	end
+end
+mp.msg.Fill.FILL2 = "Наполнять {#first/вн} {#second/тв} бессмысленно."
 
 
 Verb {
