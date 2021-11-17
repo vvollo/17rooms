@@ -1,6 +1,3 @@
--- Доступное пространство имён для объектов - все имена объектов должны начинаться с "room7_" или "stolovaya_" 
--- Все описания можно менять
--- Задача: Игрок должен найти в локации предмет thooskey.
 room {
 	nam = "room7_stolovaya";
 	title = "Столовая";
@@ -12,19 +9,12 @@ room {
 	obj = { 'room7_camel','room7_stand','room7_table','room7_plate','room7_leaf','room7_ribbon','room7_helmet','room7_bird','room7_small_key','room7_shield','room7_plinth','room7_walls','room7_emblem','room7_window','room7_buttons','room7_b1','room7_b2','room7_b3','room7_b4','room7_b5','room7_b6','room7_b7','room7_b8','room7_b9','room7_floor','room7_top' };
 }
 
--- Менять нельзя!!!! Это не ваш предмет!!! Вы не знаете как он выглядит, его придумает другой автор!!!
---obj {
---	-"зубчатый ключ,ключ";
---	nam = "thooskey";
---	description = "Зубчатый ключ.";
---}
-
 obj {
 	-"верблюд";
 	nam = "room7_camel";
 	description = "Механический, умеренно волосатый верблюд, у которого вместо горба полусферическая, серебряная крышка с пупочкой и приводом. Сбоку находится миниатюрная цифровая панель из слоновой кости.";
-	before_Take = "Он довольно-таки тяжелый, да и вообще это ни к чему.";
-}: attr 'supporter,~animate'
+	["before_Take,Push,Pull,Turn"] = "Он довольно-таки тяжелый, да и вообще это ни к чему.";
+}: attr 'supporter,static,~animate'
 
 obj {
 	-"крышка";
@@ -34,7 +24,7 @@ obj {
 	before_Take = "Она намертво приварена к приводу.";
 	before_Open = "Крышка открывается и закрывается автоматически.";
 	before_Close = "Крышка открывается и закрывается автоматически.";
-}: attr 'container,openable'
+}: attr 'container,static,openable'
 
 obj {
 	-"привод";
@@ -131,6 +121,9 @@ obj {
 	-"информационный стенд,стенд";
 	nam = "room7_stand";
 	description = function()
+		if isDaemon('room16_AI') then
+			return "На это нет времени!";
+		end
 		walk 'room7_manual';
 	end;
 }:attr 'static'
@@ -163,7 +156,9 @@ obj {
         		p"Чем ты хочешь разрезать булочку?";
         		return true;
         	end;
-        	mp:check_held(w);
+		if mp:check_held(w) then
+			return
+		end;
         	if w ~= nil then
         		if w ^ "dagger" then
                 		return false;
@@ -184,7 +179,8 @@ obj {
 		remove(s);
 	end;
 	before_Take = "Таскать с собой повсюду муляж булочки? Этого еще не хватало! Пусть лежит где лежит.^^Тем не менее, ты отмечаешь, что булочка тяжелее, чем кажется на вид.";
-}: dict {
+	["before_Eat,Taste"] = "Это не настоящая булочка. Она не съедобна.";
+}: attr 'static' : dict {
 	["кайзерка/вн"] = "кайзерку";
 	["кайзерка/рд"] = "кайзерки";
 	["кайзерка/дт"] = "кайзерке";
@@ -200,13 +196,14 @@ obj {
 		p "Не стоит даже пытаться - он очень тяжелый и кроме того ты боишься поцарапать пол.";
 	end;
 	before_Take = "И откуда только такие безумные мысли приходят людям в голову?";
-}: attr 'supporter'
+}: attr 'supporter, static'
 
 obj {
 	-"пуговица";
 	nam = "room7_button";
 	found_in = 'room7_table';
 	description = "Старинная медная пуговица с чеканным гербом.";
+	["before_Take,Tear,Cut,Attack,Rub,Push,Pull,Turn"] = "Пуговица намертво прилипла к столу. Не оторвёшь!";
 }: attr 'static'
 
 obj {
