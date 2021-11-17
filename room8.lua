@@ -15,27 +15,8 @@ game : dict {
   ["твидовый/вн"] = 'твидовый';
 }
 
--- Синонимы из Cloak of Darkness. Не знаю почему это не стандарт.
-Verb {
-  '#PutOn8',
-  'повес/ить',
-  '~ {noun}/вн,held на {noun}/вн,2,scene: PutOn',
-  '~ на {noun}/вн,2,scene {noun}/вн,held: PutOn reverse',
-  '~ {noun}/вн,held в {noun}/вн,2,scene: Insert',
-}
-Verb {
-  '#PutOn8_2',
-  'остав/ить',
-  '~ {noun}/вн,held на {noun}/пр,2,scene: PutOn',
-}
-
--- Доступное пространство имён для объектов - все имена объектов должны начинаться с "room8_" или "garderob_" 
--- Все описания можно менять
--- Задача: Игрок должен получить доступ на запад с помощью предмета thooskey. Изначально он должен быть закрыт. Игрок может придти в комнату как с этим предметом, так и без него
-
 function room8_switch_temperature(temp, forced, showmsg)
   local oldtemp = _('room8_garderob')._mode
-  -- TODO: очень тяжёлый цикл, надо как-то оптимизировать
   list_clothing:for_each(function(v)
     if (forced and v:where() ~= nil and v:where().nam == 'room8_control') then
       return
@@ -56,14 +37,12 @@ function room8_switch_temperature(temp, forced, showmsg)
         newobject = _(v.paired_neutral)
       end
       if newobject ~= nil then
-        -- dprint('Меняем местами '..v.nam ..' и '..newobject.nam)
         move(newobject, v:where());
         if (v:has('worn')) then
           newobject:attr('worn')
         else
           newobject:attr('~worn')
         end
-        -- ЭТА СТРОКА ТРЕБУЕТ КОМНАТУ emptyroom В ФИНАЛЬНОЙ ИГРЕ
         move(v, _('emptyroom'));
       end
     end
@@ -174,17 +153,19 @@ room {
     ]]..clothes;
   end;
 	e_to = function()
-    if _('room8_garagedoor'):has('locked') then
-      p 'Дверь закрыта на электронный замок.';
-      return;
-    end;
     room8_drop_items();
-    return 'room9_garazh';
+    return 'room8_garagedoor';
   end;
 	w_to = function()
     room8_drop_items();
     return 'room3_hall';
   end;
+	in_to = function(s)
+		mp:xaction("Walk", _"@e_to");
+	end;
+	out_to = function(s)
+		mp:xaction("Walk", _"@w_to");
+	end;
   _mode = 'neutral';
   hot = function()
     return here()._mode == 'hot'
@@ -305,8 +286,8 @@ obj {
   found = false;
 };
 
-obj {
-  -"дверь/жр,но";
+door {
+  -"дверь/жр,но|гараж";
   nam = 'room8_garagedoor';
   found_in = 'room8_garderob';
   with_key = 'thooskey';
@@ -319,9 +300,12 @@ obj {
     if s:has('locked') then
       return "Закрытая дверь, на которой мигает электронный замок.";
     end
-    return "Дверь в гараж, распахнутая настежь. Можно идти на запад.";
+    if s:has('~open') then
+      return false;
+    end
+    return "Дверь в гараж, распахнутая настежь. Можно идти на восток.";
   end;
-  when_open = 'Дверь в гараж открыта.';
+  door_to = 'room9_garazh';
 }: attr 'scenery,openable,lockable,locked';
 
 obj {
@@ -437,10 +421,18 @@ clothing = Class {
 			return false;
 		end
 	end;
+	before_Search = function(s)
+		local _part = s.part or 'top';
+		if _part == 'feet' and not _'thooskey'.found then
+			p('Пошарив рукой внутри ' .. s:noun('рд') .. ', ты находишь ' .. _'thooskey':noun'вн' .. '.');
+			take('thooskey');
+			_'thooskey'.found = true;
+		else
+			return false;
+		end
+	end;
 }: attr 'clothing';
 
--- Да, ты можешь писать "открыть крючок" потому что это синоним шкафа.
--- Но то, что крючки не смоделированы, должно намекать на их несущественность.
 obj {
   -"шкаф,гардероб/мр,но|крючки/мр,мн,но|крючок/мр,но|одежда/жр,но";
   nam = 'room8_clothes';
@@ -497,7 +489,6 @@ clothing {
   description = 'Чёрная тёплая ушанка с жёлтым геральдическим львом на лбу.';
 }
 
--- я не знаю почему но auto_animate считает ЭТО живым
 clothing {
   -"белая бейсболка,бейсболка/жр,но";
   nam = 'room8_baseballcap';
@@ -515,9 +506,6 @@ clothing {
   ['белая бейсболка/дт'] = 'белой бейсболке';
 }: attr '~animate';
 
--- Сюжетная проблема: так как мы моделируем одежду до уровней,
--- героиня должна быть во что-то одета изначально.
--- Придётся давать ей вещи в самом начале игры.
 clothing {
   -"деловые штаны,штаны/ср,мч,мн";
   nam = 'room8_pants';
@@ -757,6 +745,9 @@ obj {
   description = 'Маленький пьедестал с надписью «Машина времени двунаправленная». На пьедестале находится переключатель, который указывает на положение «ВЫКЛ».';
   after_SwitchOn = function(s)
 	s:attr('~on');
+	if isDaemon('room16_AI') then
+		return "Вернуться назад и всё исправить? Хотелось бы, но машина так не работает.";
+	end
 	walk 'room8_tmach_start';
   end;
 }: attr 'switchable,static,scenery';
@@ -831,10 +822,13 @@ obj {
 }: attr 'static,scenery';
 
 obj {
-  -"прихожая/жр,но|поворот/ср,но";
+  -"прихожая/жр,но|поворот/мр,но";
   nam = 'room8_out_e';
   found_in = 'room8_garderob';
   description = 'Отсюда видна часть прихожей.';
+	["before_Walk,Enter"] = function(s)
+		mp:xaction("Walk", _"@w_to");
+	end;
 }: attr 'static,concealed';
 
 obj {
@@ -847,8 +841,8 @@ obj {
   before_Exam = function(s)
     mp:xaction('Inv')
   end;
---  description = 'Карманы пусты, в них нет ничего интересного.';
 }: attr 'concealed,container';
+
 take('room8_out_pockets');
 
 obj {
@@ -893,7 +887,7 @@ clothing {
 }
 
 clothing {
-  -"миниюбка,мини-юбка,юбка,мини/жр";
+  -"мини-юбка,миниюбка,юбка,мини/жр";
   nam = 'room8_miniskirt';
   part = 'bottom';
   weight = 1;
@@ -924,7 +918,7 @@ clothing {
 }
 
 clothing {
-  -"носки/мн";
+  -"носки/мр,мн";
   nam = 'room8_socks';
   part = 'feet';
   description = 'Чёрные хлопчатобумажные носки.';
@@ -937,7 +931,7 @@ clothing {
 }
 
 clothing {
-  -"чулки/мн";
+  -"чулки/мр,мн";
   nam = 'room8_stockings';
   part = 'feet';
   description = 'Длинные полупрозрачные чёрные чулки из нейлона.';
@@ -949,7 +943,7 @@ clothing {
 }
 
 clothing {
-  -"шерстяные носки,носки/мн";
+  -"шерстяные носки,носки/мр,мн";
   nam = 'room8_coldsocks';
   part = 'feet';
   description = 'Тёплые шерстяные носки чёрного цвета.';
