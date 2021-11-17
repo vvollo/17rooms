@@ -1,6 +1,3 @@
--- Доступное пространство имён для объектов - все имена объектов должны начинаться с "room17_" или "cherdak_"
--- Все описания можно менять
--- Задача: Это изначально тёмная комната. Игрок может придти как с источником света, так и без него. Задача - найти предмет circlekey
 room {
 	nam = "room17_cherdak";
 	title = "Чердак";
@@ -17,9 +14,12 @@ room {
 			return "room17_cherdak"
 		end;
 	end;
+	out_to = function(s)
+		mp:xaction("Walk", _"@d_to");
+	end;
 -------
 	before_Walk  = function (s,w)
-		if w ^ '@d_to' then
+		if w ^ '@d_to' or w ^ '@out_to' then
 			if s.lock_down then
 				pn [[Странное дело - пути вниз теперь нет.]];
 				return true;
@@ -38,7 +38,6 @@ room {
 			"room17_walls",
 			"room17_wall",
 	 };
---};
 }: attr '~light'
 
 
@@ -80,7 +79,6 @@ obj {
 	description = "Театральная маска с длинным носом.";
 	before_Wear = function(s)
 		enable("room17_wall");
-		--disable '@d_to'
 		here().lock_down = true;
 
 		if here().cornice_seen then
@@ -103,7 +101,6 @@ obj {
 		return false;
 	end;
 	after_Disrobe = function(s)
-			--enable '@d_to'
 		here().lock_down = false;
 		pn [[Ты снимаешь маску.]];
 		p [[^Обстановка комнаты изменилась.]];
@@ -186,7 +183,6 @@ door {
 		mp:content(_"room17_keyhole");
 		return false;
 	end;
-	door_to = 'emptyroom';
 	with_key = 'emptyroom';
 	obj = {
 		obj {
@@ -274,19 +270,3 @@ obj {
 	end;
 	found_in = { 'room17_wall' }
 }:disable():attr 'static, supporter'
-
--- Менять нельзя!!!! Это не ваш предмет!!! Вы не знаете как он выглядит, его придумает другой автор!!!
---obj {
---	-"круглый ключ,ключ";
---	nam = "circlekey";
---	description = "Круглый ключ.";
---	found_in = { 'room17_keyhole' }
---}
---[[Изменить объект маски  - добавить включение и выключение объектов. Так же написать обработчики для следующих элементов паззла.
-дополнить обработчики холста , разобраться с сорвать холст]]
-
-
-Verb { "повес/ить",
-	"{noun}/вн,held на {noun}/вн,supporter : PutOn",
-	"~ на {noun}/вн,supporter {noun}/вн,held : PutOn reverse",
-}
