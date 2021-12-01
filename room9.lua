@@ -1,12 +1,3 @@
--- Доступное пространство имён для объектов - все имена объектов должны начинаться с "room9_" или "garazh_" 
--- Все описания можно менять
--- Задача: Игрок должен найти в локации предмет kerosin
-
-room {
-	nam = "room9_room9_nil";
-}
-
-
 obj {
 	-"рука";
 	nam = "room9_no_рука";
@@ -15,7 +6,6 @@ obj {
           if here().room9_var == 4 then p [[В тиски зажата грубо отпиленная рука.]]; here().room9_var = 5; 
           else p [[В тиски зажата грубо отпиленная рука.]]; end;
         end;
-        found_in = 'room9_room9_nil'; 
         before_Take = function(s)
           p [[Тебе не нужна ещё одна рука, у тебя уже есть две.]]
        end;
@@ -29,7 +19,6 @@ obj {
           if here().room9_var == 6 then p [[В тиски зажата грубо отпиленная нога.]]; here().room9_var = 7; 
           else p [[В тиски зажата грубо отпиленная нога.]]; end;
         end;
-        found_in = 'room9_room9_nil'; 
         before_Take = function(s)
           p [[Тебе не нужна ещё одна нога, у тебя уже есть две.]]
        end;
@@ -39,7 +28,6 @@ obj {
 	-"гвоздь | метка";
        nam = "room9_no_гвоздь";
        description = "";
-       found_in = 'room9_room9_nil'; 
        before_Exam = function(s)
           if here().room9_var == 10 then p [[В твой хобот вбит меченый гвоздь.]];
           else p [[На гвоздь нанесена метка инспектора По, что, впрочем, не имеет значения.]]; end;
@@ -49,7 +37,7 @@ obj {
           then
             mp.score=mp.score+1;
             p [[Ты с трудом вытащила большой гвоздь из хобота. Хобот сдулся, посерел и рассыпался в пыль.]]
-            move("room9_no_хобот", "room9_room9_nil")
+            remove("room9_no_хобот")
             here().room9_var = 11
           end;
           return false;
@@ -60,7 +48,6 @@ obj {
 	-"хобот";
 	nam = "room9_no_хобот";
         description = "";
-        found_in = 'room9_room9_nil'; 
         before_Exam = function(s)
           if here().room9_var == 10 then p [[Хобот небрежно прибит к полу большим гвоздём.]];
           else p [[Слонячий такой хобот.]]; end;
@@ -79,17 +66,10 @@ obj {
 }
 
 
--- люк заперт на замок; замок можно открыть гвоздём, при этом гвоздь теряется
--- не настоящий подвал, а всего-лишь небольшая ямка
---в ямке - пальцы мертвеца(это такой гриб) и керосин
-
-
-
 obj {
 	-"инспектор По, инспектор, По/мр | гость";
 	nam = "room9_no_инспектор";
         description = "Инспектор По - он внезапный и пугающий гость, он вонзил в твой хобот меченый гвоздь!";
-        found_in = 'room9_room9_nil'; 
 }:attr 'scenery,animate'
 
 ----------------------------------------
@@ -113,6 +93,7 @@ room {
           end;
           move(pl,'room8_garderob');
         end;
+	out_to = function(s) mp:xaction("Walk", _'@w_to') end;
 
         e_to = function()
           if here().room9_var < 3
@@ -127,58 +108,16 @@ room {
           if here().room9_var == 5
             then here().room9_var = 6 -- ничего взято, всё осмотрено, появилась нога
             move("room9_no_нога", "room9_garazh")
-            move("room9_no_рука", "room9_room9_nil")
+            remove("room9_no_рука")
           end;
           if here().room9_var == 7
             then here().room9_var = 8 -- ничего взято, всё осмотрено, появился хобот
             move("room9_no_хобот", "room9_garazh")
-            move("room9_no_нога", "room9_room9_nil")
+            remove("room9_no_нога")
           end;
         end;
-
-        n_to = function()
-          if here().room9_var < 3
-            then p [[Прежде чем идти, хорошо бы всё осмотреть.]];
-            else 
-              p [[Возможно, ты сходишь с ума, но тебе кажется, что в гараже что-то изменилось. ]];
-          end
-          if here().room9_var == 3
-            then here().room9_var = 4 -- ничего взято, всё осмотрено, появилась рука
-            move("room9_no_рука", "room9_garazh")
-          end;
-          if here().room9_var == 5
-            then here().room9_var = 6 -- ничего взято, всё осмотрено, появилась нога
-            move("room9_no_нога", "room9_garazh")
-            move("room9_no_рука", "room9_room9_nil")
-          end;
-          if here().room9_var == 7
-            then here().room9_var = 8 -- ничего взято, всё осмотрено, появился хобот
-            move("room9_no_хобот", "room9_garazh")
-            move("room9_no_нога", "room9_room9_nil")
-          end;
-        end;
-
-        s_to = function()
-          if here().room9_var < 3
-            then p [[Прежде чем идти, хорошо бы всё осмотреть.]];
-            else 
-              p [[Возможно, ты сходишь с ума, но тебе кажется, что в гараже что-то изменилось. ]];
-          end
-          if here().room9_var == 3
-            then here().room9_var = 4 -- ничего взято, всё осмотрено, появилась рука
-            move("room9_no_рука", "room9_garazh")
-          end;
-          if here().room9_var == 5
-            then here().room9_var = 6 -- ничего взято, всё осмотрено, появилась нога
-            move("room9_no_нога", "room9_garazh")
-            move("room9_no_рука", "room9_room9_nil")
-          end;
-          if here().room9_var == 7
-            then here().room9_var = 8 -- ничего взято, всё осмотрено, появился хобот
-            move("room9_no_хобот", "room9_garazh")
-            move("room9_no_нога", "room9_room9_nil")
-          end;
-        end;
+	n_to = function(s) mp:xaction("Walk", _'@e_to') end;
+	s_to = function(s) mp:xaction("Walk", _'@e_to') end;
 
 	before_Remove = function(s,w,wh)
 		-- правильная отработка команд "взять что-то из гаража/пола/тисков/шкафа"
@@ -218,8 +157,8 @@ obj  {
 	description = "Здесь ничего, а так же странный звук и странный запах. Очень странное ничего.";
         after_Take = function(s)
           here().room9_var = 2 -- ничего взято
-          move("room9_no_помеха", "room9_room9_nil")
-          move(s, "room9_room9_nil")
+          remove("room9_no_помеха")
+          remove(s)
           return false
        end;
 }
@@ -365,8 +304,6 @@ obj {
 
 -----------------------------------------
 
--- люк, подвал, подпол, погреб
-
 obj {
 	-"замок | люк | цепь | цепи | ямка | яма | подвал | подпол | погреб";
 	nam = "room9_no_люк";
@@ -401,10 +338,11 @@ obj {
 	nam = "room9_no_гардероб";
         description = "Гардероб - на западе.";
         found_in = 'room9_garazh'; 
+	["before_Walk,Enter"] = function(s)
+		mp:xaction("Walk", _"@w_to");
+	end;
 }:attr 'scenery'
 
-
--- Менять нельзя!!!! Это не ваш предмет!!! Вы не знаете как он выглядит, его придумает другой автор!!!
 
 obj {
 	-"керосин|бутылочка";
@@ -424,4 +362,3 @@ obj {
           return false;
         end;
 }
-
