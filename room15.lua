@@ -1,7 +1,3 @@
--- Доступное пространство имён для объектов - все имена объектов должны начинаться с "room15_" или "bedroom_"
--- Все описания можно менять
--- Задача: Игрок должен найти в локации предмет statuetka
--- Спальня находится на втором этаже
 room {
 	nam = "room15_bedroom";
 	book_read = false;
@@ -515,6 +511,16 @@ obj {
 			return 'Паук шипит, щелкает пастью и скрежещет своими лапами по полу. ';
 		end;
 	end;
+	before_Shoot = function(s, w)
+		if not w and pl:have('gun') then
+			w = _'gun';
+		end
+		if(w == _'gun') then
+			p 'Отличная идея! Можно ещё пойти пострелять из пушки по воробьям!'
+		else
+			p 'Ты не вооружена.'
+		end;
+	end;
 }: attr('static,animate'): disable();
 
 obj {
@@ -725,14 +731,15 @@ obj {
 		else
 			if w == nil then
 				return 'Твои руки недостаточно острые. ';
-			elseif w^'dagger' then
-				mp:check_held(w);
+			elseif mp:check_held(w) then
+				return
+			end
+			if w^'dagger' then
                 		return false;
 			elseif w^'kitchen_knife' then
-				mp:check_held(w);
 				s:tearApart();
 			else
-				return 'Простыня не режется. Возможно стоит резать ее чем-то другим. ';
+				p 'Простыня не режется. Возможно стоит резать ее чем-то другим. ';
 			end;
 		end;
 	end;
@@ -932,6 +939,16 @@ obj {
 	end;
 	before_Kiss = "Что если тебя током ударит? ";
 	before_Take = 'Не трогай, уронишь!';
+	before_Shoot = function(s, w)
+		if not w and pl:have('gun') then
+			w = _'gun';
+		end
+		if(w == _'gun') then
+			p 'Хоть это и зомбо-ящик, вряд ли именно он виноват в помешательстве тёти.'
+		else
+			return false
+		end;
+	end;
 }: attr('switchable,static,on,luminous');
 
 obj {
@@ -995,10 +1012,3 @@ obj {
 		pr 'Небо слишком далеко. ';
 	end;
 }: attr('concealed,static,luminous'):disable();
-
--- Менять нельзя!!!! Это не ваш предмет!!! Вы не знаете как он выглядит, его придумает другой автор!!!
---obj {
---	-"статуетка";
---	nam = "statuetka";
---	description = "Статуетка.";
---}
