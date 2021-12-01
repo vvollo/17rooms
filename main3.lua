@@ -1,5 +1,5 @@
---$Name:17 комнат: Проклятие старого поместья$
---$Version: 2.0.0$
+--$Name:17 комнат$
+--$Version: 1.1.1$
 
 require "parser/mp-ru"
 require "fmt"
