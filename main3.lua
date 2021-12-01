@@ -1,5 +1,5 @@
---$Name:17 комнат$
---$Version: 1.1.1$
+--$Name:17 комнат: Проклятие старого поместья$
+--$Version: 2.0.0$
 
 require "parser/mp-ru"
 require "fmt"
@@ -26,6 +26,7 @@ include "room14"
 include "room15"
 include "room16"
 include "room17"
+include "system/system"
 
 mp.undo = 20
 mp.score = 0 -- enable scoring
