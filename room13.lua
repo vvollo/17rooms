@@ -16,6 +16,7 @@ room {
 	end,
 	description = "Небольшая, по меркам особняка тёти Агаты, комната.",
 	w_to = 'room12_gostinnaya',
+	out_to = 'room12_gostinnaya',
 	Taste = "{#Me} не {#word/хочет,#me,нст} пробовать {#first/вн} на вкус.",
 	obj = {
 	   obj {
@@ -98,7 +99,10 @@ room {
 	   obj {
 			 -"дверца|маленькая дверца|дверка|маленькая дверка|дверь",
 		  nam = "room13_дверца",
-		  dsc = "За отъехавшим в сторону шкафом видна маленькая дверца.",
+		  dsc = function(s)
+			p "За отъехавшим в сторону шкафом видна маленькая дверца."
+			mp:content(s)
+		  end,
 		  description = "Маленькая металлическая дверца.",
 		  before_Take = function(s)
 			 if disabled "room13_ниша" then
@@ -110,39 +114,35 @@ room {
 		  Touch = "{#First/им} прохладная и гладкая.",
 		  Smell = "{#First/им} пахнет металлом.",
 		  with_key = "room13_маленький ключик",
-		  after_Open = function(s)
-			 enable "room13_ниша"
-			 p "{#Me/им} {#word/открывать,#me,нст} дверцу и {#word/видеть,#me,нст} небольшую нишу."
-			 return true
-		  end,
-		  Close = function(s)
-			 disable "room13_ниша"
-			 return false
-		  end,
+		  before_Receive = function(s, w)
+			 mp:xaction("Insert", w, _"room13_ниша");
+		  end;
 		  after_Unlock = function(s)
 			 remove "room13_маленький ключик"
 			 return false
 		  end,
-	   }:attr "static,openable,lockable,locked":disable(),
-	   obj {
-			 -"ниша",
-		  nam = "room13_ниша",
-		  dsc = function(s)
-			 p "За ней находится небольшая ниша."
-			 mp:content(s)
-		  end,
-		  description = function(s)
-			 p "Небольшое углубление в стене. Тайник!"
-			 mp:content(s)
-		  end,
-		  --"знает"
-		  before_Take = "{#Me} не {#word/знает,#me,нст} как можно взять нишу.",
-		  Touch = "Внутри ниша обита мягким и приятным на ощупь материалом.",
-		  Smell = "В нише ничем не пахнет.",
 		  obj = {
-			 "book",
+			   obj {
+					 -"ниша",
+				  nam = "room13_ниша",
+				  dsc = function(s)
+					 p "За ней находится небольшая ниша."
+					 mp:content(s)
+				  end,
+				  description = function(s)
+					 p "Небольшое углубление в стене. Тайник!"
+					 mp:content(s)
+				  end,
+				  --"знает"
+				  before_Take = "{#Me} не {#word/знает,#me,нст} как можно взять нишу.",
+				  Touch = "Внутри ниша обита мягким и приятным на ощупь материалом.",
+				  Smell = "В нише ничем не пахнет.",
+				  obj = {
+					 "book",
+				  },
+			   }:attr "static,container,open",
 		  },
-	   }:attr "static,container,open":disable(),
+	   }:attr "static,openable,lockable,locked,container":disable(),
 	   obj {
 			 -"ковёр|коврик",
 		  count = 0,
@@ -285,15 +285,3 @@ obj {
    Touch = "Гладкий белый металл приятно холодит руку.",
    Smell = "Пахнет металлом.",
 }
-
---obj {
---	  -"книга",
---   nam = "book",
---   description = "Книга.",
---}
-
---obj {
---	  -"квадратный ключ,ключ",
---   nam = "squarekey",
---   description = "Квадратный ключ.",
---}
