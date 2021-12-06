@@ -149,7 +149,7 @@ room {
 door {
 	  -"люк";
    nam = "room4_hatch";
-   when_locked = "В полу виден закрытый люк.";
+   when_closed = "В полу виден закрытый люк.";
    when_open = "В полу находится открытый люк.";
    with_key = "bonekey";
    door_to = function(s)
@@ -228,7 +228,10 @@ room {
 			mp:xaction('Take', _'room4_flower');
 		end;
 		before_Give = function(s, w)
-			return _"room4_flower".before_Give(_"room4_flower", w)
+			mp:xaction('Give', _'room4_flower', w);
+		end;
+		before_Show = function(s, w)
+			mp:xaction('Show', _'room4_flower', w);
 		end;
 	  }: attr "static",
 	  obj {
