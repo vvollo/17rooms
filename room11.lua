@@ -493,7 +493,7 @@ room {
 						};
 						p(msg[rnd(#msg)]);
 					end;
-				}:disable();
+				}:attr 'static':disable();
 				obj {
 					-"ножки шкафа|ножка шкафа";
 					nam = 'kabinet_shrankopiedo';
