@@ -586,7 +586,7 @@ room {
 					before_Push = 'Нет. Пусть висит где висит.';
 					before_Taste = 'Несмотря на то, что в зеркало можно смотреться, это не делает его менее пыльным.';
 					before_Talk = 'Поговорить со своим отражением? Нет, для того, чтобы поговорить с самой собой тебе не обязательно нужен зрительный контакт.';
-					['before_Ask, Ask_to, AskFor, Tell'] = function(s,w)
+					['before_Ask, AskTo, AskFor, Tell, Answer'] = function(s,w)
 						if w:find "красное"  and w:find "море" and s:once(mp.event) then
 							p 'Ты произнесла это и услышала за собой какой-то грохот. Что-то упало на пол.';
 							mp.score=mp.score+1;
