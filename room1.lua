@@ -40,9 +40,6 @@ room {
 		return true
 	end;
 	before_Eat = function(s,w)
-		if w:has'edible' then
-			return false
-		end
 		p("Анастасия была так голодна, что съела бы и "..w:noun('вн')..", но благоразумие взяло вверх, и она решила повременить с трапезой.")
 	end;
 	obj = {
