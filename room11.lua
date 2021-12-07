@@ -615,13 +615,9 @@ room {
 					end;
 					before_Push = 'Нет. Пусть висит где висит.';
 					before_Taste = 'Несмотря на то, что в зеркало можно смотреться, это не делает его менее пыльным.';
-					before_Talk = 'Возможно, стоит сказать своему отражению что-то конкретное.';
+					before_Talk = 'Поговорить со своим отражением? Нет, для того, чтобы поговорить с самой собой тебе не обязательно нужен зрительный контакт.';
 					['before_Ask, AskTo, AskFor, Tell, Answer'] = function(s,w)
-						if s.donated then
-							p 'Ты уже сказала зеркалу всё, что намеревалась.';
-							return true;
-						end;
-						if w:find "красное" and w:find "море" then
+						if w:find "красное"  and w:find "море" and s:once(mp.event) then
 							p 'Ты произнесла это и услышала за собой какой-то грохот. Что-то упало на пол.';
 							mp.score=mp.score+1;
 							enable('kabinet_falsajoponardo');
