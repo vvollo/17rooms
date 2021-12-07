@@ -521,27 +521,7 @@ room {
 						};
 						p(msg[rnd(#msg)]);
 					end;
-					before_Receive = function(s,w)
-						p(w:Noun'им' .. ' не удержится на радиоле.');
-					end;
-					before_SwitchOn = function(s)
-						p('Она и так включена.');
-					end;
-					before_SwitchOff = function(s)
-						p('Зачем? Хорошая же музыка.');
-					end;
-				}:attr 'static,supporter':disable():with{
-					obj {
-						-"страница,бумага|листок бумаги,листок|ноты|мелодия";
-						nam = 'kabinet_notelist';
-						description = 'Страница, лежащая на радиоле.';
-						was_read = false;
-						["before_Take,Consult"] = function(s)
-							p 'Ты берёшь страницу и видишь, что на ней записаны ноты. Запомнив мелодию, ты кладёшь страницу обратно.';
-							s.was_read = true;
-						end;
-					}:attr 'static'
-				};
+				}:attr 'static':disable();
 				obj {
 					-"ножки шкафа|ножка шкафа";
 					nam = 'kabinet_shrankopiedo';
