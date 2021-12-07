@@ -70,6 +70,16 @@ room {
 			return false;
 		end;
 	end;
+	before_Shoot = function(s,w,wi)
+		if not wi and pl:have('gun') then
+			wi = _'gun';
+		end
+		if (wi == _'gun') and (w == _'kabinet_fenestro' or w == _'kabinet_minifenestro' or w == _'kabinet_fenestroframo' or w == _'kabinet_fenestravitro' or w == _'kabinet_birdo' or w == _'kabinet_birdo2' or w == _'kabinet_korvo' or w == _'kabinet_korvo2' or w == _'kabinet_stranga' or w == _'kabinet_stranga2') then
+			p 'Если ты разобьёшь выстрелом стекло, существа смогут проникнуть в кабинет! Оно тебе надо?'
+		else
+			return false
+		end;
+	end;
 	}:with{
 		obj {
 			-"стол";
@@ -521,7 +531,27 @@ room {
 						};
 						p(msg[rnd(#msg)]);
 					end;
-				}:attr 'static':disable();
+					before_Receive = function(s,w)
+						p(w:Noun'им' .. ' не удержится на радиоле.');
+					end;
+					before_SwitchOn = function(s)
+						p('Она и так включена.');
+					end;
+					before_SwitchOff = function(s)
+						p('Зачем? Хорошая же музыка.');
+					end;
+				}:attr 'static,supporter':disable():with{
+					obj {
+						-"страница,бумага|листок бумаги,листок|ноты|мелодия";
+						nam = 'kabinet_notelist';
+						description = 'Страница, лежащая на радиоле.';
+						was_read = false;
+						["before_Take,Consult"] = function(s)
+							p 'Ты берёшь страницу и видишь, что на ней записаны ноты. Запомнив мелодию, ты кладёшь страницу обратно.';
+							s.was_read = true;
+						end;
+					}:attr 'static'
+				};
 				obj {
 					-"ножки шкафа|ножка шкафа";
 					nam = 'kabinet_shrankopiedo';
@@ -615,9 +645,13 @@ room {
 					end;
 					before_Push = 'Нет. Пусть висит где висит.';
 					before_Taste = 'Несмотря на то, что в зеркало можно смотреться, это не делает его менее пыльным.';
-					before_Talk = 'Поговорить со своим отражением? Нет, для того, чтобы поговорить с самой собой тебе не обязательно нужен зрительный контакт.';
+					before_Talk = 'Возможно, стоит сказать своему отражению что-то конкретное.';
 					['before_Ask, AskTo, AskFor, Tell, Answer'] = function(s,w)
-						if w:find "красное"  and w:find "море" and s:once(mp.event) then
+						if s.donated then
+							p 'Ты уже сказала зеркалу всё, что намеревалась.';
+							return true;
+						end;
+						if w:find "красное" and w:find "море" then
 							p 'Ты произнесла это и услышала за собой какой-то грохот. Что-то упало на пол.';
 							mp.score=mp.score+1;
 							enable('kabinet_falsajoponardo');
@@ -670,6 +704,16 @@ room {
 			before_Push = 'Пусть висит на своём месте.';
 			before_Taste = 'Это лучше оставить у себя в голове.';
 			before_Enter = 'Это не представляется возможным.';
+			before_Shoot = function(s, w)
+				if not w and pl:have('gun') then
+					w = _'gun';
+				end
+				if(w == _'gun') then
+					p 'Уничтожить призрак старого пирата не удастся, просто повредив его портрет.'
+				else
+					return false
+				end;
+			end;
 			}:with{
 				obj {
 					-"картинная рама|рамка картинки";
