@@ -5,7 +5,12 @@ room {
 	dark_dsc = "Темно, хоть глаз выколи.";
 	u_to = 'room4_kladovka';
 	out_to = 'room4_kladovka';
-	before_Listen = "Ничего не слышно.";
+	before_Listen = function(s, w)
+		if w and w:has'on' then
+			return false
+		end
+		return "Ничего не слышно.";
+	end;
 	before_Smell = "Ничем не пахнет.";
 	before_Tie = function(s, w, wh)
 		if wh == _'room5_verev' and w ~= _'room5_ventil' then
@@ -112,6 +117,9 @@ obj {
 	   else
 	      p("Стены больничного белого цвета. Навевают какие-то мрачные мысли.")
 	   end
+	end;
+	["before_Touch,Blow,Rub,Attack"] = function(s)
+		p("Ты тронула стену в случайном месте. Никакого эффекта.")
 	end;
 }: attr 'scenery'
 
