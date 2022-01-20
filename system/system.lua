@@ -148,9 +148,3 @@ _"room17_door".after_Open = function(s)
 	walk 'system_meet_oldman';
 end;
 _"room1_letter".before_Turn = "На обратной стороне письма тем же почерком написано: \"Если всё же решишь зайти, то нажми красную кнопку в подвале. Так будет лучше для всех.\"";
-_"room5_podval".before_Listen = function(s,w)
-	if w == _"system_redbutton" and _"system_redbutton":has'on' then
-		return false
-	end
-	return "Ничего не слышно.";
-end;
