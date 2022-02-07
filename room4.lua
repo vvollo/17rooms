@@ -88,6 +88,14 @@ room {
 		 before_Touch = "Гладкое и прохладное.";
 	  }: attr "static",
 	  obj {
+			-"рама|осьминог|щупальца";
+			description = "Старинная бронзовая рама. Представляет собой осьминога, растопырившего щупальца.";
+			before_Take = "Невозможно оторвать раму от зеркала.";
+			before_Smell = "Пахнет металлом.";
+			before_Taste = "На вкус, как металл.";
+			before_Touch = "Прохладный металл.";
+	  }:attr "scenery",
+	  obj {
 			-"стена|стены";
 		 description = "Стены покрыты пыльной штукатуркой.";
 		 before_Take = "Взять стены? Как?";
@@ -404,24 +412,20 @@ room {
    };
 }
 
-obj {
-	  -"сапфир";
-   nam = "room4_sapfir";
-   found_in = "emptyroom";
-   description = [[Синий полупрозрачный драгоценный камень.]];
+room4_Gem = Class {
    before_Insert = function(s, w)
-	  if not w ^ "room4_dolphin" then
-		if w ^ "room4_crab" or w ^ "room4_frog" then
-			return "Камень никак не хочет держаться в углублении."
-		else
-			return false
-		end
+	  if w.gem ~= nil and not s:has"scenery" then
+	        if not w.gem ^ s then
+			return s.wronggem
+	        end
+	  else
+	      return false
 	  end
 	  place(s, w)
 	  s:attr "scenery"
 	  --"вставлять"
-	    return "{#Me/им} {#word/вставлять,#me,нст} сапфир в углубление."
-      end;
+	  return "{#Me/им} {#word/вставлять,#me,нст} {#first/вн} в углубление."
+   end;
 	Show = function(s, w)
 	 	if w ^ "room4_mermaid" then
 			return "Русалка кивает, и показывает пальчиком на висящее в воздухе зеркало."
@@ -430,103 +434,70 @@ obj {
 	end;
 }
 
-obj {
+room4_Gem {
+	  -"сапфир";
+   nam = "room4_sapfir";
+   found_in = "emptyroom";
+   description = [[Синий полупрозрачный драгоценный камень.]];
+   sdesc = "переливающимся сапфиром";
+   wronggem = "Камень никак не хочет держаться в углублении.";
+}
+
+room4_Gem {
 	  -"рубин";
    nam = "room4_rybin";
    found_in = "emptyroom";
    description = [[Сияющий красный драгоценный камень.]];
-   before_Insert = function(s, w)
-	  if not w ^ "room4_crab" then
-		if w ^ "room4_dolphin" or w ^ "room4_frog" then
-			return "Камень слишком большой и не влезает в углубление."
-		else
-			return false
-		end
-	  end
-	  place(s, w)
-	  s:attr "scenery"
-	  return "{#Me/им} {#word/вставлять,#me,нст} рубин в углубление."
-   end;
-	Show = function(s, w)
-	 	if w ^ "room4_mermaid" then
-			return "Русалка кивает, и показывает пальчиком на висящее в воздухе зеркало."
-		end;
-		return false;
-	end;
+   sdesc = "сияющим рубином";
+   wronggem = "Камень слишком большой и не влезает в углубление.";
 }
 
-obj {
+room4_Gem {
 	  -"изумруд";
    nam = "room4_izymryd";
    found_in = "emptyroom";
    description = [[Зелёный блестящий драгоценный камень.]];
-   before_Insert = function(s, w)
-	  if not w ^ "room4_frog" then
-		if w ^ "room4_crab" or w ^ "room4_dolphin" then
-			return "Камень не подходит по форме к этому углублению."
-		else
-			return false
-		end
-	  end
-	  place(s, w)
-	  s:attr "scenery"
-	  return "{#Me/им} {#word/вставлять,#me,нст} изумруд в углубление."
-   end;
-	Show = function(s, w)
-	 	if w ^ "room4_mermaid" then
-			return "Русалка кивает, и показывает пальчиком на висящее в воздухе зеркало."
-		end;
-		return false;
-	end;
+   sdesc = "похожим на каплю блестящего яда изумрудом";
+   wronggem = "Камень не подходит по форме к этому углублению.";
 }
 
-obj {
-	  -"отверстие в фигурке дельфина/но|углубление в фигурке дельфин/но|дельфин/но";
+room4_Figure = Class {
+   description = function(s)
+	if where(s.gem) ^ s then
+		return "Бронзовая фигурка " .. s.animal .. " с " .. _(s.gem).sdesc .. " " .. s.bodypart .. "."
+	else
+		return "Бронзовая фигурка " .. s.animal .. " с маленьким углублением " .. s.bodypart .. "."
+	end
+   end;
+   before_LetIn = function(s, w)
+	  --"подходит"
+	  return "{#Second/им} не {#word/подходит,#second} по форме."
+   end;
+}:attr "static,container,open"
+
+room4_Figure {
+	  -"отверстие в фигурке дельфина/но|углубление в фигурке дельфина/но|дельфин/но|фигурка дельфина,фигурка/но";
    nam = "room4_dolphin";
-   description = function(s)
-	if where "room4_sapfir" ^ "room4_dolphin" then
-		return "Бронзовая фигурка дельфина с переливающимся сапфиром во лбу."
-	else
-		return "Бронзовая фигурка дельфина с маленьким углублением во лбу."
-	end
-   end;
-   before_LetIn = function(s, w)
-	  --"подходит"
-	  return "{#Second/им} не {#word/подходит,#second} по форме."
-   end;
-}:attr "static,container,open"
+   gem = "room4_sapfir";
+   animal = "дельфина";
+   bodypart = "во лбу";
+}
 
-obj {
-	  -"отверстие в фигурке краба/но|углубление в фигурке краба/но|краб/но|углубление/но";
+room4_Figure {
+	  -"отверстие в фигурке краба/но|углубление в фигурке краба/но|краб/но|углубление/но|фигурка краба,фигурка/но";
    nam = "room4_crab";
-   description = function(s)
-	if where "room4_rybin" ^ "room4_crab" then
-		return "Бронзовая фигурка краба с сияющим рубином в середине панциря."
-	else
-		return "Бронзовая фигурка краба с маленьким углублением в середине панциря."
-	end
-   end;
-   before_LetIn = function(s, w)
-	  --"подходит"
-	  return "{#Second/им} не {#word/подходит,#second} по форме."
-   end;
-}:attr "static,container,open"
+   gem = "room4_rybin";
+   animal = "краба";
+   bodypart = "в середине панциря";
+}
 
-obj {
-	  -"отверстие в фигурке змеи/но|углубление в фигурке змеи/но|змея/но";
+room4_Figure {
+	  -"отверстие в фигурке змеи/но|углубление в фигурке змеи/но|змея/но|фигурка змеи,фигурка/но";
    nam = "room4_frog";
-   description = function(s)
-	if where "room4_izymryd" ^ "room4_frog" then
-		return "Бронзовая змея, с похожим на каплю блестящего яда, изумрудом во рту."
-	else
-		return "Бронзовая змея с маленьким углублением во рту."
-	end
-   end;
-   before_LetIn = function(s, w)
-	  --"подходит"
-	  return "{#Second/им} не {#word/подходит,#second} по форме."
-   end;
-}:attr "static,container,open"
+   gem = "room4_izymryd";
+   animal = "змеи";
+   bodypart = "во рту";
+}
 
 obj {
 	  -"костяной ключ,ключ";
