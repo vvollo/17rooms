@@ -521,6 +521,12 @@ obj {
 		_"room14_secondfloor".obj:add("room14_hole");
 		end
 		end;
+	['before_Push,Pull,Turn,Transfer'] = function(s,w)
+		p"Манекен надёжно прикреплён к полу, не сдвинешь."
+		if not s:once() then
+			p"Возможно, двигать надо не его?";
+		end
+	end;
 }:attr'scenery, ~animate'
 
 
@@ -733,99 +739,95 @@ obj {
 	['before_Walk,Enter'] = function(s)
 		p"Ты уже не в том возрасте, чтобы лазать по чужим комодам.";
 	end;
+	before_Transfer = function(s,w)
+		if w ^ 'room14_walls' or w ^ 'room14_picture' then
+			if s.moving then
+				mp:xaction('Push',s)
+			else
+				p"Комод и так там."
+			end
+		elseif w ^ 'room14_plate' then
+			if _"room14_carpet".moving and not s.moving then
+				mp:xaction('Push',s)
+			elseif not _"room14_carpet".moving then
+				p"Не выйдет. Пластина скрыта ковром."
+			else
+				p"Комод и так там."
+			end
+		elseif w ^ 'room14_carpet' then
+			if not _"room14_carpet".moving and not s.moving then
+				mp:xaction('Push',s)
+			elseif _"room14_carpet".moving then
+				p"Не выйдет. Ковёр откинут."
+			else
+				p"Комод и так там."
+			end
+		elseif w ^ 'room14_floor' then
+			mp:xaction('Push',s)
+		else
+			return false
+		end
+	end;
+	before_PushDir = function(s,dir)
+		p"Не стоит передвигать комод за пределы комнаты."
+	end;
 	
 }:attr'concealed, container, static'
 
-obj {
+room14_Box = Class {
+	description = function(s)
+		s:attr'open';
+		p(s.adju .. " ящик комода.");
+		content(s, true);
+	end;
+	before_Take = function (s)
+		if (pl:have(_"room14_box1") or pl:have(_"room14_box2")) and not pl:have(s) then
+			return p"Ящики слишком тяжёлые, чтобы носить их вместе.";
+		else
+			s.stable = false;
+			return false		
+		end
+	end;
+	before_Pull = function(s)
+	 	move(s, _"room14_secondfloor");
+	 	s.stable = false;
+	 	return p("Ты вытащила " .. s.adj .. " ящик комода и положила на пол.");
+	end;
+	['before_Insert,Push'] = function(s)
+		if s.stable then
+			p("Но " .. s.adj .. " ящик и так в комоде.");
+		else
+			move(s, _"room14_drawer");
+			s.stable = true;
+			return p("Ты вставила " .. s.adj .. " ящик обратно в комод.");
+		end
+	end;
+	before_Open = function(s)
+		s:attr'open';
+		if s.stable then
+			p("Ты открыла " .. s.adj .. " ящик комода.");
+		end
+		content(s, true);
+	end;
+}:attr'container'
+
+room14_Box {
 	-"верхний ящик комода, верхний ящик, ящик комода, ящик";
 	nam = "room14_box1";
-	description = function(s)
-		_"room14_box1":attr'open';
-		p"Верхний ящик комода.";
-		content(_"room14_box1", true);
-		--return false
-	end;
-	stable = true;
 	found_in = "room14_drawer";
-	before_Take = function (s,w)
-	if pl:have(_"room14_box1") or pl:have(_"room14_box2") then
-		return p"Ящики слишком тяжёлые, чтобы носить их вместе.";
-	else
-		_"room14_box1".stable = false;
-		return false		
-	end
-	end;
-	before_Pull = function(s)
-	 	move(_"room14_box1", _"room14_secondfloor");
-	 	_"room14_box1".stable = false;
-	 	return p"Ты вытащила верхний ящик комода и положила на пол.";
-	end;
-	['before_Insert,Push'] = function(s)
-		if _"room14_box1".stable == true then
-			p"Но верхний ящик и так в комоде.";
-		else
-			move(_"room14_box1", _"room14_drawer");
-			_"room14_box1".stable = true;
-			return p"Ты вставила верхний ящик обратно в комод.";
-		end
-	end;
-	before_Open = function(s)
-		_"room14_box1":attr'open';
-		if _"room14_box1".stable then
-			p"Ты открыла верхний ящик комода.";
-			content(_"room14_box1", true);
-		else
-			content(_"room14_box1", true);
-		end
-	end;
-}:attr'container'
+	stable = true;
+	adj = "верхний";
+	adju = "Верхний";
+}
 
-
-obj {
+room14_Box {
 	-"нижний ящик комода, нижний ящик, ящик комода, ящик";
 	nam = "room14_box2";
-	description = function(s)
-		_"room14_box2":attr'open';
-		p"Нижний ящик комода.";
-		content(_"room14_box2", true);
-		--return false
-	end;
-	stable = true;
 	found_in = "room14_drawer";
-
-	before_Take = function (s,w)
-	if pl:have(_"room14_box1") or pl:have(_"room14_box2") then	
-		return p"Ящики слишком тяжёлые, чтобы носить их вместе.";
-	else
-		_"room14_box2".stable = false;
-		return false	
-	end
-	end;
-	before_Pull = function(s)
-	 	move(_"room14_box2", _"room14_secondfloor");
-	 	_"room14_box2".stable = false;
-	 	return p"Ты вытащила нижний ящик комода и положила на пол.";
-	end;
-	['before_Insert,Push'] = function(s)
-		if _"room14_box2".stable == true then
-			p"Но нижний ящик и так в комоде.";
-		else
-			move(_"room14_box2", _"room14_drawer");
-			_"room14_box2".stable = true;
-			return p"Ты вставила нижний ящик обратно в комод.";
-		end
-	end;
-	before_Open = function(s)
-		_"room14_box2":attr'open';
-		if _"room14_box2".stable then
-			p"Ты открыла нижний ящик комода.";
-			content(_"room14_box2", true);
-		else
-			content(_"room14_box2", true);
-		end
-	end;
-
-}:attr'container'
+	stable = true;
+	adj = "нижний";
+	adju = "Нижний";
+}
 
 
 
@@ -876,6 +878,12 @@ obj {
 	end;
 	before_Receive = function(s,w)
 		p "У тебя нет ни малейшего желания оставлять вещи в витрине.";
+	end;
+	['before_Take,Tear'] = function(s)
+		p"Витрина -- это продолжение комода, её не оторвёшь.";
+		if not s:once() then
+			p"Но, возможно, из него можно вытащить другие составные части.";
+		end
 	end;
 }:attr'scenery,openable'
 
@@ -1097,9 +1105,9 @@ obj {
 		'тимо йокинен', 
 		'особняк', 'ковё', 'кове', 'ковр', 'плать'};
 
-	['before_Consult,Search'] = function(s, w)
+	['before_Consult,Search,Open'] = function(s, w)
 	if w == nil then
-		p"Большая папка с бумагами, документами и газетными вырезками. Просмотрев бумаги, ты поняла, что они посвящены какому-то преступлению. Возможно, надо поискать что-то в документах.";
+		p"Бумаги посвящены какому-то преступлению. Возможно, надо поискать в документах конкретную информацию.";
 		return
 	else
 	local found = -1
@@ -1126,7 +1134,7 @@ obj {
 			s.score = true;
 		end;
 	elseif found == 11 or found == 12 or found == 13 then
-		p"Судя по отчёту, горничную Веронику наняли сразу после свадьбы для того, чтобы вести хозяйство большого особняка. Мотивом преступления стала ревность, которую убийца испытывала к жене своего любовника. После неудачной попытки убийства, находясь в состоянии аффекта от смерти любовника, она покончила с собой.";
+		p"Судя по отчёту, горничную Веронику наняли сразу после свадьбы для того, чтобы вести хозяйство большого особняка. Мотивом преступления стала ревность, которую убийца испытывала к жене своего любовника. После неудачной попытки убийства, находясь в состоянии аффекта от смерти любовника, она покончила с собой. Всё это время на руках горничной были перчатки.";
 	elseif found >= 14 and found <= 17 then
 		_"room14_report".seen = true;
 		p"Пролистав папку, ты обнаружила, что орудием преступления являлся пистолет Beretta 92FS, с позолоченной рукояткой, который принадлежал жертве и хранился в его кабинете. ^Там также написано, что в рукоятку вделан небольшой магнит, благодаря которому пистолет не мог взять никто, кроме владельца или знающего секрет. Чтобы отключить магнитное поле, нужно повернуть пистолет особым образом.";
