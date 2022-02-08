@@ -118,7 +118,7 @@ obj {
 }:attr 'clothing'
 
 obj {
-	-"холст";
+	-"холст|очаг,огонь,котелок,котёл,чеснок,дым|похлёбка";
 	nam = "room17_canvas";
 	get_from_carnise = false;
 	description = "Холст.";
@@ -171,6 +171,9 @@ obj {
 			disable("room17_door");
 			return true;
 		end;
+	end;
+	["before_Eat,Taste"] = function(s)
+		p [[Котёл с похлёбкой -- всего лишь рисунок.]]
 	end;
 	found_in = { 'room17_cornice' };
 }:disable():attr 'clothing'
