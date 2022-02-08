@@ -152,10 +152,7 @@ room {
       Ты стоишь в маленьком повороте прихожей, между шкафом с одеждой и пустой стеной, украшенной ярким плакатом. Рядом с плакатом находится серый рычаг с фигурной рукояткой. Комната продолжает прихожую (на западе) и упирается в дверь гаража (на востоке). Возле стены стоит пьедестал с надписью «Машина времени».
     ]]..clothes;
   end;
-	e_to = function()
-    room8_drop_items();
-    return 'room8_garagedoor';
-  end;
+	e_to = 'room8_garagedoor';
 	w_to = function()
     room8_drop_items();
     return 'room3_hall';
@@ -233,6 +230,13 @@ obj {
     end;
     return true
   end;
+  before_Receive = function(self, thing)
+    if not list_clothing:lookup(thing) then
+	p("{#Second} не удержится на рычаге.")
+	return true
+    end
+    return false
+  end;
   after_Receive = function(self, thing)
     local weight = 0
     if thing.weight ~= nil then
@@ -293,19 +297,23 @@ door {
   with_key = 'thooskey';
   after_Unlock = function(s)
     remove('thooskey');
+    s:attr('open');
     mp.score=mp.score+1;
     return 'Ключ застревает в замке, но дверь всё-таки открывается.';
   end;
   description = function(s)
     if s:has('locked') then
-      return "Закрытая дверь, на которой мигает электронный замок.";
+      return "Запертая дверь, на которой мигает электронный замок. Также её можно отпереть ключом.";
     end
     if s:has('~open') then
       return false;
     end
     return "Дверь в гараж, распахнутая настежь. Можно идти на восток.";
   end;
-  door_to = 'room9_garazh';
+  door_to = function()
+    room8_drop_items();
+    return 'room9_garazh';
+  end;
 }: attr 'scenery,openable,lockable,locked';
 
 obj {
@@ -332,7 +340,15 @@ obj {
     return "Металл как металл.";
   end;
   capacity = 1;
+  before_Receive = function(self, thing)
+    if not list_clothing:lookup(thing) then
+	p("{#Second} не удержится на замке.")
+	return true
+    end
+    return false
+  end;
   after_Receive = function(self, thing)
+    p("Ты укутываешь замок {#second/тв}.")
     local is_boiling = here().hot() and thing.mode == 'cold';
     if is_boiling and not self:has('broken') and _'room8_garagedoor':has('locked') then
       pn ('Из-под '..thing:noun('рд')..' доносится резкий писк, затем что-то начинает шипеть и ты видишь струйку дыма. Дверь распахивается настежь.');
@@ -344,16 +360,20 @@ obj {
       _'thooskey'.found = true;
       return true;
     end;
-    return false;
   end;
   description = function(s)
     local description = 'Электронный замок со стальным корпусом и гордой наклейкой «Модель "Невзломайка" с антивандальной защитой. Проверено в режиме от минус сорока до сорока градусов.» Это маленькая коробка с двумя лампочками.';
     if s:has('broken') then
       description = description .. ' Внутри замка что-то перегрелось и расплавилось. Он безнадёжно сломан.'
+    elseif not _'room8_garagedoor':has('locked') then
+      description = description .. ' Сейчас горит зелёная лампочка, так как дверь отперта.'
     else
       description = description .. ' Сейчас горит красная лампочка с надписью "Требуется ключ-карта".';
       if here().hot() then
         description = description .. " Воздух вокруг замка заметно нагрет, а лампочка немного мигает.";
+        if s:empty() and not s:once() then
+        	description = description .. "^Ещё немножко его утеплить -- и, глядишь, перегреется.";
+        end;
       elseif here().cold() then
         description = description .. " Наклейка покрылась коркой льда.";
       end;
