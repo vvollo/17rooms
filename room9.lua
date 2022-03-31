@@ -95,11 +95,16 @@ room {
         end;
 	out_to = function(s) mp:xaction("Walk", _'@w_to') end;
 
-        e_to = function()
+        e_to = function(s)
           if here().room9_var < 3
             then p [[Прежде чем идти, хорошо бы всё осмотреть.]];
-            else 
+          elseif here().room9_var > 8 then
+              p [[Больше в гараже ничего не меняется.]];
+          else 
               p [[Возможно, ты сходишь с ума, но тебе кажется, что в гараже что-то изменилось. ]];
+              if (here().room9_var == 4 or here().room9_var == 6 or here().room9_var == 8) and not s:once() then
+                  p [[На востоке, возможно?]];
+              end;
           end
           if here().room9_var == 3
             then here().room9_var = 4 -- ничего взято, всё осмотрено, появилась рука
@@ -121,12 +126,41 @@ room {
 
 	before_Remove = function(s,w,wh)
 		-- правильная отработка команд "взять что-то из гаража/пола/тисков/шкафа"
-		if wh == _'room9_no_гараж' or wh == _'room9_no_пол' or wh == _'room9_no_тиски' or wh == _'room9_no_шкаф' then
+		if wh == _'room9_no_гараж' or wh == _'room9_no_пол' or wh == _'room9_no_тиски' or wh == _'room9_no_шкаф' or wh == _'room9_no_верстак' then
+			if w == _'@all' and not (wh == _'room9_no_гараж' or wh == _'room9_no_пол') then
+				return false
+			end
 			mp:xaction('Take', w);
 		else
 			return false;
 		end;
 	end;
+	["before_PutOn,Insert"] = function(s,w,wh)
+		-- правильная отработка команд "положить что-то на/в гараж/пол/тиски/шкаф"
+		if wh == _'room9_no_гараж' or wh == _'room9_no_пол' then
+			mp:xaction('Drop', w);
+		elseif wh == _'room9_no_тиски' or wh == _'room9_no_шкаф' or wh == _'room9_no_верстак' then
+			p "Там нет места.";
+		else
+			return false;
+		end;
+	end;
+	compass_look = function(s,dir)
+		if dir == 'n_to' then
+			mp:xaction('Exam', _"room9_no_бензопила")
+		elseif dir == 's_to' then
+			mp:xaction('Exam', _"room9_no_книга")
+		elseif dir == 'e_to' then
+			mp:xaction('Exam', _"room9_no_верстак")
+		elseif dir == 'w_to' then
+			mp:xaction('Exam', _"room9_no_гардероб")
+		elseif dir == 'd_to' then
+			mp:xaction('Exam', _"room9_no_пол")
+		else
+			return false
+		end
+	end;
+
 	before_Listen = "Ты слышишь гулкий ритмичный звук - то ли это живые мертвецы стучат, то ли это стук твоего сердца.";
 	before_Smell = "Дело пахнет керосином.";
 	obj = { 'room9_no_гараж', 'room9_no_люк', 'room9_o1', 'room9_o2'};
