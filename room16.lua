@@ -1582,35 +1582,24 @@ obj {
 		end;
 		if(_'room16_AI'.daemon_stage == 5) then
 			DaemonStop 'room16_AI';
-			walk 'ending_victim_wait'
+			walk 'ending_victim'
 		end;
 		if(_'room16_AI'.daemon_stage == 6) then
 			DaemonStop 'room16_AI';
-			if pl:where() ^ 'room16_mystical' then
-				walk 'ending_victim_attack'
-			else
-				walk 'ending_victim_attack_out'
-			end;
+			_'ending_victim'.tryatt = true
+			_'ending_victim'.leftroom = not (pl:where() ^ 'room16_mystical')
+			walk 'ending_victim'
 		end;
 		if(_'room16_AI'.daemon_stage == 7) then
 			DaemonStop 'room16_AI';
-			walk 'ending_victim_cut'
+			_'ending_victim'.trycut = true
+			walk 'ending_victim'
 		end;
 		if(_'room16_AI'.daemon_stage == 8) then
 			DaemonStop 'room16_AI';
-			if not (pl:where() ^ 'room1_kryltco' or pl:where() ^ 'room2_terassa' or pl:where() ^ 'room2_on_terrasa') then
-				if mp.event == 'Shoot' then
-					walk 'ending_kill_gun'
-				else
-					walk 'ending_kill_dagger'
-				end
-			else
-				if mp.event == 'Shoot' then
-					walk 'ending_kill_gun_out'
-				else
-					walk 'ending_kill_dagger_out'
-				end
-			end;
+			_'ending_kill'.outside = (pl:where() ^ 'room1_kryltco' or pl:where() ^ 'room2_terassa' or pl:where() ^ 'room2_on_terrasa');
+			_'ending_kill'.shoot_ev = (mp.event == 'Shoot');
+			walk 'ending_kill'
 		end;
 		if(_'room16_AI'.daemon_stage == 9) then
 			DaemonStop 'room16_AI';
@@ -1719,7 +1708,7 @@ cutscene {
 		"-- Не перебивай старших! Да, я не платила за коммуналку уже десять лет, и да, я принимала ванну два раза в день, и да, я майнила биткоины, ну и что!";
 		"В глазах тётушки нет ничего, кроме слепой ярости по отношению к судебным приставам, и эта ярость направлена на тебя.";
 		" -- Никто не должен был найти меня, девчонка! -- она выковыривается из шкафа, растопырив длинные когти.";
-		" -- Абракадабра! Фу ты, пх'нглуи, мглв'нафх, алохомора, пламя Удуна, КФ937, мать его! -- она кричит что-то невразумительное, и стены содрогаются.";
+		" -- Абракадабра! Фу ты, пх'нглуи, мглв'нафх, алохомора, пламя Удуна, {$fmt b|КФ937}, мать его! -- она кричит что-то невразумительное, и стены содрогаются.";
 		"Тётка выпрыгивает из шкафа и, как птица, приземляется на пюпитр.";
 		"Надо что-то делать. У тебя мало времени.";
 	};
