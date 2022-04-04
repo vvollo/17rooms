@@ -769,12 +769,9 @@ room2_Exhibit {
 			_'room16_AI'.daemon_stage = 4;
 			_'room16_AI'.daemon_dop = 1;
 			mp.score=mp.score+1;
-		elseif s:where() ^ 'room2_right_cabinet' then
-			DaemonStop 'room16_AI';
-			walk 'ending_evil';
 		else
 			DaemonStop 'room16_AI';
-			walk 'ending_evil_2';
+			walk 'ending_evil';
 		end;
 	end;
 	before_Default = function(s, ev, w)
