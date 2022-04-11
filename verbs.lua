@@ -81,6 +81,31 @@ VerbExtend {
 	"~ в|во {noun}/пр,2 {noun}/вн : Insert reverse",
 }
 
+VerbExtendWord { "#Insert",
+	"всун/уть,установ/ить"
+}
+
+VerbExtendWord { "#SwitchOff",
+	"отключ/ить"
+}
+
+VerbExtendWord { "#Pull",
+	"выдвин/уть"
+}
+
+VerbExtendWord{ "#Unlock",
+	"подцеп/ить,подде/ть,взлома/ть"
+}
+
+VerbExtendWord{ "#Climb",
+	"забр/аться,забери/сь"
+}
+
+VerbExtendWord{ "#Tear",
+	"оторвать,оторви/,оторву"
+}
+
+
 
 VerbExtend {
 	"#Wave",
@@ -97,6 +122,9 @@ function mp:after_WaveHands(w)
 end
 mp.msg.WaveHands.WAVE2 = "{#Me} глупо {#word/помахать,прш,#me} руками {#first/дт}."
 
+
+VerbExtendWord {"#Fill", 
+	"заправ/ить,заряд/ить,заполн/ить"}
 
 VerbExtend {"#Fill",
 	"в {noun}/вн {noun}/вн : Fill",
@@ -181,8 +209,8 @@ function mp:after_Shoot(w, wh)
 		mp:message 'Shoot.SHOOT'
 	end
 end
-mp.msg.Shoot.SHOOT = "{#Me/им} не {#word/может,#me} стрелять в {#first/вн}."
-mp.msg.Shoot.SHOOT2 = "{#Me/им} не {#word/может,#me} стрелять в {#first/вн} из {#second/рд}."
+mp.msg.Shoot.SHOOT = "Стрелять в {#first/вн} бессмысленно."
+mp.msg.Shoot.SHOOT2 = "Стрелять в {#first/вн} из {#second/рд} бессмысленно."
 
 
 --[[Verb {
@@ -206,7 +234,7 @@ function mp:Frotz(w)
         p "Объект на который накладывается заклятие ФРОЦ должен находится в руках.";
         return
     end
-    p("{#Me/им} произносит заклинание ФРОЦ на {#first/пр}. {#First} начал светится умеренным светом, достаточным, чтобы осветить любую тёмную комнату.");
+    p("{#Me/им} произносишь заклинание ФРОЦ на {#first/пр}. {#First} начинает светится умеренным светом, достаточным, чтобы осветить любую тёмную комнату.");
     w:attr'light';
 end
 
