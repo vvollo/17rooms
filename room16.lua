@@ -12,34 +12,14 @@ room {
 			else
 				p ("По углам стоят большой шкаф, пюпитр и постамент, а под потолком узкая щель, таинственный свет плавно ниспадает на паркет, постеленный на полу.");
 			end;
-			p ("Выход из комнаты — на востоке.");
-			mp:content(_'room16_parquet')
-			if(_'room16_wardrobe':has "open") then mp:content(_'room16_wardrobe') end;
 		else
 			p ("Распахнутый шкаф стоит у стены напротив пюпитра. У ещё одной стены нервно прячется постамент, а у четвёртой стены стоишь ты.");
-			p ("Выход из комнаты — на востоке.");
-			if(_'room16_wall'.state == 2) then p('В стене виднеется небольшая дыра.'); end;
-			if(_'room16_wall'.state == 3) then p('В стене просто огромная дыра!'); end;
-			mp:content(_'room16_parquet')
 		end;
-	end;
-	description = function(s)
-		if s.state == 0 then
-			if s.firsttime == 1 then
-				p ("Комната выглядит таинственно: в углу стоит большой шкаф, в другом углу стоит пюпитр, в третьем углу находится небольшой постамент, а четвёртый угол вообще пустой! Из щели под потолком сочится тусклый свет, придающий комнате ещё больше таинственности.");
-				s.firsttime = 0;
-			else
-				p ("По углам стоят большой шкаф, пюпитр и постамент, а под потолком узкая щель, таинственный свет плавно ниспадает на паркет, постеленный на полу.");
-			end;
-			p ("Выход из комнаты — на востоке.");
-			mp:content(_'room16_parquet')
-			if(_'room16_wardrobe':has "open") then mp:content(_'room16_wardrobe') end;
-		else
-			p ("Распахнутый шкаф стоит у стены напротив пюпитра, на котором сидит тётушка Агата и точит когти. У ещё одной стены нервно прячется постамент, а у четвёртой стены стоишь ты.");
-			p ("Выход из комнаты — на востоке.");
-			if(_'room16_wall'.state == 2) then p('В стене виднеется небольшая дыра.'); end;
-			if(_'room16_wall'.state == 3) then p('В стене просто огромная дыра!'); end;
-		end;
+		if(_'room16_wall'.state == 2) then p('В стене виднеется небольшая дыра.'); end;
+		if(_'room16_wall'.state == 3) then p('В стене просто огромная дыра!'); end;
+		mp:content(_'room16_parquet')
+		if(s.state == 0 and _'room16_wardrobe':has "open") then _'room16_AI':describe() end;
+		p ("Выход из комнаты — на востоке.");
 	end;
 	e_to = 'room14_secondfloor';
 	before_Listen = function()
@@ -142,8 +122,6 @@ room {
 		end
 	end;
 	obj = { 'room16_wardrobe','room16_parquet','room16_bookstand','room16_pedestal','room16_slit','room16_walls' };
---	obj = { 'statuetka','book','dagger','room16_wardrobe','room16_parquet','room16_bookstand','room16_pedestal','room16_slit' };
-	--obj = { 'room16_wardrobe','room16_parquet','room16_bookstand','room16_pedestal','room16_slit' };
 }
 
 obj {
@@ -221,10 +199,43 @@ obj {
         end;
 }
 
-obj {
+room16_XO = Class {
+	["before_Insert,PutOn"] = function(s, w)
+		if (w == _'room16_a1' or w == _'room16_a2' or w == _'room16_a3' or w == _'room16_b1' or w == _'room16_b2' or w == _'room16_b3' or w == _'room16_c1' or w == _'room16_c2' or w == _'room16_c3') then
+			if s.outside == (_'room16_wardrobe'.state < 4) then
+				if(_'room16_wardrobe'.turn == 0) then
+					return false;
+				else
+					p 'Сейчас не твой ход!'
+				end;
+			else
+				if s.outside then
+					p('Теперь ты играешь крестиками!')
+				else
+					p('Ты играешь ноликами!')
+				end;
+			end;
+		else
+			p("Что??")
+		end;
+	end;
+	before_Drop = function(s)
+		p ('Надо бросать пить, а не ' .. s.pltitle .. ' бросать.')
+	end;
+	["before_Take,Remove,Enter"] = function()
+		p ('Что-что?')
+	end;
+	before_Cut = function(s, w)
+		mp:xaction('PutOn', s, w)
+	end;
+}:attr 'concealed'
+
+room16_XO {
 	-"крестик, крест";
 	nam = "room16_x";
 	title = "Крестик";
+	pltitle = "крестики";
+	outside = false;
 	before_Exam = function(s)
 		if(_'room16_a1'.state == 1 or _'room16_a2'.state == 1 or _'room16_a3'.state == 1 or _'room16_b1'.state == 1 or _'room16_b2'.state == 1 or _'room16_b3'.state == 1 or _'room16_c1'.state == 1 or _'room16_c2'.state == 1 or _'room16_c3'.state == 1) then
 			p 'Крестик как крестик.'
@@ -232,51 +243,14 @@ obj {
 			p 'Здесь нет крестиков.'
 		end;
 	end;
-	before_Insert = function(s, w)
-		if (w == _'room16_a1' or w == _'room16_a2' or w == _'room16_a3' or w == _'room16_b1' or w == _'room16_b2' or w == _'room16_b3' or w == _'room16_c1' or w == _'room16_c2' or w == _'room16_c3') then
-			if(_'room16_wardrobe'.state >= 4) then
-				if(_'room16_wardrobe'.turn == 0) then
-					return false;
-				else
-					p 'Сейчас не твой ход!'
-				end;
-			else
-				p('Ты играешь ноликами!')
-			end;
-		else
-			p("Что??")
-		end;
-	end;
-	before_Drop = function()
-		p ('Надо бросать пить, а не крестики бросать.')
-	end;
-	["before_Take,Remove,Enter"] = function()
-		p ('Что-что?')
-	end;
-	before_Cut = function(s, w)
-		mp:xaction('PutOn', s, w)
-	end;
-	before_PutOn = function(s, w)
-		if (w == _'room16_a1' or w == _'room16_a2' or w == _'room16_a3' or w == _'room16_b1' or w == _'room16_b2' or w == _'room16_b3' or w == _'room16_c1' or w == _'room16_c2' or w == _'room16_c3') then
-			if(_'room16_wardrobe'.state >= 4) then
-				if(_'room16_wardrobe'.turn == 0) then
-					return false;
-				else
-					p 'Сейчас не твой ход!'
-				end;
-			else
-				p('Ты играешь ноликами!')
-			end;
-		else
-			p("Что??")
-		end;
-	end;
-}:attr 'concealed'
+}
 
-obj {
+room16_XO {
 	-"нолик, ноль";
 	nam = "room16_o";
 	title = "Нолик";
+	pltitle = "нолики";
+	outside = true;
 	before_Exam = function(s)
 		if(_'room16_a1'.state == 2 or _'room16_a2'.state == 2 or _'room16_a3'.state == 2 or _'room16_b1'.state == 2 or _'room16_b2'.state == 2 or _'room16_b3'.state == 2 or _'room16_c1'.state == 2 or _'room16_c2'.state == 2 or _'room16_c3'.state == 2) then
 			p 'Нолик как нолик.'
@@ -284,38 +258,7 @@ obj {
 			p 'Здесь нет ноликов.'
 		end;
 	end;
-	before_Insert = function(s, w)
-		if (w == _'room16_a1' or w == _'room16_a2' or w == _'room16_a3' or w == _'room16_b1' or w == _'room16_b2' or w == _'room16_b3' or w == _'room16_c1' or w == _'room16_c2' or w == _'room16_c3') then
-			if(_'room16_wardrobe'.state < 4) then
-				return false;
-			else
-				p('Теперь ты играешь крестиками!')
-			end;
-		else
-			p("Что??")
-		end;
-	end;
-	before_Drop = function()
-		p ('Надо бросать пить, а не нолики бросать.')
-	end;
-	["before_Take,Remove,Enter"] = function()
-		p ('Что-что?')
-	end;
-	before_Cut = function(s, w)
-		mp:xaction('PutOn', s, w)
-	end;
-	before_PutOn = function(s, w)
-		if (w == _'room16_a1' or w == _'room16_a2' or w == _'room16_a3' or w == _'room16_b1' or w == _'room16_b2' or w == _'room16_b3' or w == _'room16_c1' or w == _'room16_c2' or w == _'room16_c3') then
-			if(_'room16_wardrobe'.state < 4) then
-				return false;
-			else
-				p('Теперь ты играешь крестиками!')
-			end;
-		else
-			p("Что??")
-		end;
-	end;
-}:attr 'concealed'
+}
 
 obj {
 	-"паркет, пол";
@@ -564,24 +507,18 @@ obj {
 	end;
 }:attr 'scenery, static'
 
-obj {
-	-"поле А1, А1, поле а1, а1";
-	nam = "room16_a1";
-	title = "Поле А1";
-	state = 0;
+room16_Field = Class {
 	description = function(s)
 		if s.state == 0 then
 			if(_'room16_wardrobe'.state >= 4) then
-				p ("Поле А1 не заполнено. Сюда можно поставить крестик.")			
+				p ("Поле " .. s.fldtitle .. " не заполнено. Сюда можно поставить крестик.")			
 			else
-				p ("Поле А1 не заполнено. Сюда можно поставить нолик.")
+				p ("Поле " .. s.fldtitle .. " не заполнено. Сюда можно поставить нолик.")
 			end;
-		end;
-		if s.state == 1 then
-			p ("На поле А1 стоит крестик.")
-		end;
-		if s.state == 2 then
-			p ("На поле А1 стоит нолик.")
+		elseif s.state == 1 then
+			p ("На поле " .. s.fldtitle .. " стоит крестик.")
+		elseif s.state == 2 then
+			p ("На поле " .. s.fldtitle .. " стоит нолик.")
 		end;
 	end;
 	before_Receive = function(s, w)
@@ -589,7 +526,7 @@ obj {
 			if (_'room16_wardrobe'.turn == 0) then
 				if (s.state == 0) then
 					if (pl:have(_'dagger')) then
-						p ('Остриём кинжала ты выцарапываешь нолик на поле А1.')
+						p ('Остриём кинжала ты выцарапываешь нолик на поле ' .. s.fldtitle .. '.')
 						s.state = 2
 						_'room16_wardrobe'.turn = 1
 						_'room16_AI'.state = _'room16_AI'.state + 1
@@ -608,7 +545,7 @@ obj {
 				if (_'room16_wardrobe'.turn == 0) then
 					if (s.state == 0) then
 						if (pl:have(_'dagger')) then
-							p ('Остриём кинжала ты выцарапываешь крестик на поле А1.')
+							p ('Остриём кинжала ты выцарапываешь крестик на поле ' .. s.fldtitle .. '.')
 							s.state = 1
 							_'room16_wardrobe'.turn = 1
 							_'room16_AI'.state = _'room16_AI'.state + 1
@@ -626,469 +563,77 @@ obj {
 	end;
 }:attr 'scenery, static, supporter'
 
-obj {
+room16_Field {
+	-"поле А1, А1, поле а1, а1";
+	nam = "room16_a1";
+	title = "Поле А1";
+	fldtitle = "А1";
+	state = 0;
+}
+
+room16_Field {
 	-"поле А2, А2, поле а2, а2";
 	nam = "room16_a2";
 	title = "Поле А2";
+	fldtitle = "А2";
 	state = 0;
-	description = function(s)
-		if s.state == 0 then
-			p ("Поле А2 не заполнено. Сюда можно поставить нолик.")
-		end;
-		if s.state == 1 then
-			p ("На поле А2 стоит крестик.")
-		end;
-		if s.state == 2 then
-			p ("На поле А2 стоит нолик.")
-		end;
-	end;
-	before_Receive = function(s, w)
-		if (w == _'room16_o') then
-			if (_'room16_wardrobe'.turn == 0) then
-				if (s.state == 0) then
-					if (pl:have(_'dagger')) then
-						p ('Остриём кинжала ты выцарапываешь нолик на поле А2.')
-						s.state = 2
-						_'room16_wardrobe'.turn = 1
-						_'room16_AI'.state = _'room16_AI'.state + 1
-						_'room16_AI':continue()
-					else
-						p ('Чтобы поставить нолик, нужен кинжал.')
-					end;
-				else
-					p ('Это поле уже заполнено. Нельзя же играть не по правилам!')
-				end;
-			else
-				p ('Ты уже поставила один нолик в этом ходу. Нельзя же играть не по правилам!')
-			end;
-		else
-			if (w == _'room16_x' and _'room16_wardrobe'.state >= 4) then
-				if (_'room16_wardrobe'.turn == 0) then
-					if (s.state == 0) then
-						if (pl:have(_'dagger')) then
-							p ('Остриём кинжала ты выцарапываешь крестик на поле А2.')
-							s.state = 1
-							_'room16_wardrobe'.turn = 1
-							_'room16_AI'.state = _'room16_AI'.state + 1
-						else
-							p ('Чтобы поставить крестик, нужен кинжал.')
-						end;
-					else
-						p ('Это поле уже заполнено. Нельзя же играть не по правилам!')
-					end;
-				end;				
-			else
-				p ('Что??')
-			end;
-		end;
-	end;
-}:attr 'scenery, static, supporter'
+}
 
-obj {
+room16_Field {
 	-"поле А3, А3, поле а3, а3";
 	nam = "room16_a3";
 	title = "Поле А3";
+	fldtitle = "А3";
 	state = 0;
-	description = function(s)
-		if s.state == 0 then
-			p ("Поле А3 не заполнено. Сюда можно поставить нолик.")
-		end;
-		if s.state == 1 then
-			p ("На поле А3 стоит крестик.")
-		end;
-		if s.state == 2 then
-			p ("На поле А3 стоит нолик.")
-		end;
-	end;
-	before_Receive = function(s, w)
-		if (w == _'room16_o') then
-			if (_'room16_wardrobe'.turn == 0) then
-				if (s.state == 0) then
-					if (pl:have(_'dagger')) then
-						p ('Остриём кинжала ты выцарапываешь нолик на поле А3.')
-						s.state = 2
-						_'room16_wardrobe'.turn = 1
-						_'room16_AI'.state = _'room16_AI'.state + 1
-						_'room16_AI':continue()
-					else
-						p ('Чтобы поставить нолик, нужен кинжал.')
-					end;
-				else
-					p ('Это поле уже заполнено. Нельзя же играть не по правилам!')
-				end;
-			else
-				p ('Ты уже поставила один нолик в этом ходу. Нельзя же играть не по правилам!')
-			end;
-		else
-			if (w == _'room16_x' and _'room16_wardrobe'.state >= 4) then
-				if (_'room16_wardrobe'.turn == 0) then
-					if (s.state == 0) then
-						if (pl:have(_'dagger')) then
-							p ('Остриём кинжала ты выцарапываешь крестик на поле А3.')
-							s.state = 1
-							_'room16_wardrobe'.turn = 1
-							_'room16_AI'.state = _'room16_AI'.state + 1
-						else
-							p ('Чтобы поставить крестик, нужен кинжал.')
-						end;
-					else
-						p ('Это поле уже заполнено. Нельзя же играть не по правилам!')
-					end;
-				end;				
-			else
-				p ('Что??')
-			end;
-		end;
-	end;
-}:attr 'scenery, static, supporter'
+}
 
-obj {
+room16_Field {
 	-"поле Б1, Б1, поле б1, б1";
 	nam = "room16_b1";
 	title = "Поле Б1";
+	fldtitle = "Б1";
 	state = 0;
-	description = function(s)
-		if s.state == 0 then
-			p ("Поле Б1 не заполнено. Сюда можно поставить нолик.")
-		end;
-		if s.state == 1 then
-			p ("На поле Б1 стоит крестик.")
-		end;
-		if s.state == 2 then
-			p ("На поле Б1 стоит нолик.")
-		end;
-	end;
-	before_Receive = function(s, w)
-		if (w == _'room16_o') then
-			if (_'room16_wardrobe'.turn == 0) then
-				if (s.state == 0) then
-					if (pl:have(_'dagger')) then
-						p ('Остриём кинжала ты выцарапываешь нолик на поле Б1.')
-						s.state = 2
-						_'room16_wardrobe'.turn = 1
-						_'room16_AI'.state = _'room16_AI'.state + 1
-						_'room16_AI':continue()
-					else
-						p ('Чтобы поставить нолик, нужен кинжал.')
-					end;
-				else
-					p ('Это поле уже заполнено. Нельзя же играть не по правилам!')
-				end;
-			else
-				p ('Ты уже поставила один нолик в этом ходу. Нельзя же играть не по правилам!')
-			end;
-		else
-			if (w == _'room16_x' and _'room16_wardrobe'.state >= 4) then
-				if (_'room16_wardrobe'.turn == 0) then
-					if (s.state == 0) then
-						if (pl:have(_'dagger')) then
-							p ('Остриём кинжала ты выцарапываешь крестик на поле Б1.')
-							s.state = 1
-							_'room16_wardrobe'.turn = 1
-							_'room16_AI'.state = _'room16_AI'.state + 1
-						else
-							p ('Чтобы поставить крестик, нужен кинжал.')
-						end;
-					else
-						p ('Это поле уже заполнено. Нельзя же играть не по правилам!')
-					end;
-				end;				
-			else
-				p ('Что??')
-			end;
-		end;
-	end;
-}:attr 'scenery, static, supporter'
+}
 
-obj {
+room16_Field {
 	-"поле Б2, Б2, поле б2, б2";
 	nam = "room16_b2";
 	title = "Поле Б2";
+	fldtitle = "Б2";
 	state = 0;
-	description = function(s)
-		if s.state == 0 then
-			p ("Поле Б2 не заполнено. Сюда можно поставить нолик.")
-		end;
-		if s.state == 1 then
-			p ("На поле Б2 стоит крестик.")
-		end;
-		if s.state == 2 then
-			p ("На поле Б2 стоит нолик.")
-		end;
-	end;
-	before_Receive = function(s, w)
-		if (w == _'room16_o') then
-			if (_'room16_wardrobe'.turn == 0) then
-				if (s.state == 0) then
-					if (pl:have(_'dagger')) then
-						p ('Остриём кинжала ты выцарапываешь нолик на поле Б2.')
-						s.state = 2
-						_'room16_wardrobe'.turn = 1
-						_'room16_AI'.state = _'room16_AI'.state + 1
-						_'room16_AI':continue()
-					else
-						p ('Чтобы поставить нолик, нужен кинжал.')
-					end;
-				else
-					p ('Это поле уже заполнено. Нельзя же играть не по правилам!')
-				end;
-			else
-				p ('Ты уже поставила один нолик в этом ходу. Нельзя же играть не по правилам!')
-			end;
-		else
-			if (w == _'room16_x' and _'room16_wardrobe'.state >= 4) then
-				if (_'room16_wardrobe'.turn == 0) then
-					if (s.state == 0) then
-						if (pl:have(_'dagger')) then
-							p ('Остриём кинжала ты выцарапываешь крестик на поле Б2.')
-							s.state = 1
-							_'room16_wardrobe'.turn = 1
-							_'room16_AI'.state = _'room16_AI'.state + 1
-						else
-							p ('Чтобы поставить крестик, нужен кинжал.')
-						end;
-					else
-						p ('Это поле уже заполнено. Нельзя же играть не по правилам!')
-					end;
-				end;				
-			else
-				p ('Что??')
-			end;
-		end;
-	end;
-}:attr 'scenery, static, supporter'
+}
 
-obj {
+room16_Field {
 	-"поле Б3, Б3, поле б3, б3";
 	nam = "room16_b3";
 	title = "Поле Б3";
+	fldtitle = "Б3";
 	state = 0;
-	description = function(s)
-		if s.state == 0 then
-			p ("Поле Б3 не заполнено. Сюда можно поставить нолик.")
-		end;
-		if s.state == 1 then
-			p ("На поле Б3 стоит крестик.")
-		end;
-		if s.state == 2 then
-			p ("На поле Б3 стоит нолик.")
-		end;
-	end;
-	before_Receive = function(s, w)
-		if (w == _'room16_o') then
-			if (_'room16_wardrobe'.turn == 0) then
-				if (s.state == 0) then
-					if (pl:have(_'dagger')) then
-						p ('Остриём кинжала ты выцарапываешь нолик на поле Б3.')
-						s.state = 2
-						_'room16_wardrobe'.turn = 1
-						_'room16_AI'.state = _'room16_AI'.state + 1
-						_'room16_AI':continue()
-					else
-						p ('Чтобы поставить нолик, нужен кинжал.')
-					end;
-				else
-					p ('Это поле уже заполнено. Нельзя же играть не по правилам!')
-				end;
-			else
-				p ('Ты уже поставила один нолик в этом ходу. Нельзя же играть не по правилам!')
-			end;
-		else
-			if (w == _'room16_x' and _'room16_wardrobe'.state >= 4) then
-				if (_'room16_wardrobe'.turn == 0) then
-					if (s.state == 0) then
-						if (pl:have(_'dagger')) then
-							p ('Остриём кинжала ты выцарапываешь крестик на поле Б3.')
-							s.state = 1
-							_'room16_wardrobe'.turn = 1
-							_'room16_AI'.state = _'room16_AI'.state + 1
-						else
-							p ('Чтобы поставить крестик, нужен кинжал.')
-						end;
-					else
-						p ('Это поле уже заполнено. Нельзя же играть не по правилам!')
-					end;
-				end;				
-			else
-				p ('Что??')
-			end;
-		end;
-	end;
-}:attr 'scenery, static, supporter'
+}
 
-obj {
+room16_Field {
 	-"поле В1, В1, поле в1, в1";
 	nam = "room16_c1";
 	title = "Поле В1";
+	fldtitle = "В1";
 	state = 0;
-	description = function(s)
-		if s.state == 0 then
-			p ("Поле В1 не заполнено. Сюда можно поставить нолик.")
-		end;
-		if s.state == 1 then
-			p ("На поле В1 стоит крестик.")
-		end;
-		if s.state == 2 then
-			p ("На поле В1 стоит нолик.")
-		end;
-	end;
-	before_Receive = function(s, w)
-		if (w == _'room16_o') then
-			if (_'room16_wardrobe'.turn == 0) then
-				if (s.state == 0) then
-					if (pl:have(_'dagger')) then
-						p ('Остриём кинжала ты выцарапываешь нолик на поле В1.')
-						s.state = 2
-						_'room16_wardrobe'.turn = 1
-						_'room16_AI'.state = _'room16_AI'.state + 1
-						_'room16_AI':continue()
-					else
-						p ('Чтобы поставить нолик, нужен кинжал.')
-					end;
-				else
-					p ('Это поле уже заполнено. Нельзя же играть не по правилам!')
-				end;
-			else
-				p ('Ты уже поставила один нолик в этом ходу. Нельзя же играть не по правилам!')
-			end;
-		else
-			if (w == _'room16_x' and _'room16_wardrobe'.state >= 4) then
-				if (_'room16_wardrobe'.turn == 0) then
-					if (s.state == 0) then
-						if (pl:have(_'dagger')) then
-							p ('Остриём кинжала ты выцарапываешь крестик на поле В1.')
-							s.state = 1
-							_'room16_wardrobe'.turn = 1
-							_'room16_AI'.state = _'room16_AI'.state + 1
-						else
-							p ('Чтобы поставить крестик, нужен кинжал.')
-						end;
-					else
-						p ('Это поле уже заполнено. Нельзя же играть не по правилам!')
-					end;
-				end;				
-			else
-				p ('Что??')
-			end;
-		end;
-	end;
-}:attr 'scenery, static, supporter'
+}
 
-obj {
+room16_Field {
 	-"поле В2, В2, поле в2, в2";
 	nam = "room16_c2";
 	title = "Поле В2";
+	fldtitle = "В2";
 	state = 0;
-	description = function(s)
-		if s.state == 0 then
-			p ("Поле В2 не заполнено. Сюда можно поставить нолик.")
-		end;
-		if s.state == 1 then
-			p ("На поле В2 стоит крестик.")
-		end;
-		if s.state == 2 then
-			p ("На поле В2 стоит нолик.")
-		end;
-	end;
-	before_Receive = function(s, w)
-		if (w == _'room16_o') then
-			if (_'room16_wardrobe'.turn == 0) then
-				if (s.state == 0) then
-					if (pl:have(_'dagger')) then
-						p ('Остриём кинжала ты выцарапываешь нолик на поле В2.')
-						s.state = 2
-						_'room16_wardrobe'.turn = 1
-						_'room16_AI'.state = _'room16_AI'.state + 1
-						_'room16_AI':continue()
-					else
-						p ('Чтобы поставить нолик, нужен кинжал.')
-					end;
-				else
-					p ('Это поле уже заполнено. Нельзя же играть не по правилам!')
-				end;
-			else
-				p ('Ты уже поставила один нолик в этом ходу. Нельзя же играть не по правилам!')
-			end;
-		else
-			if (w == _'room16_x' and _'room16_wardrobe'.state >= 4) then
-				if (_'room16_wardrobe'.turn == 0) then
-					if (s.state == 0) then
-						if (pl:have(_'dagger')) then
-							p ('Остриём кинжала ты выцарапываешь крестик на поле В2.')
-							s.state = 1
-							_'room16_wardrobe'.turn = 1
-							_'room16_AI'.state = _'room16_AI'.state + 1
-						else
-							p ('Чтобы поставить крестик, нужен кинжал.')
-						end;
-					else
-						p ('Это поле уже заполнено. Нельзя же играть не по правилам!')
-					end;
-				end;				
-			else
-				p ('Что??')
-			end;
-		end;
-	end;
-}:attr 'scenery, static, supporter'
+}
 
-obj {
+room16_Field {
 	-"поле В3, В3, поле в3, в3";
 	nam = "room16_c3";
 	title = "Поле В3";
+	fldtitle = "В3";
 	state = 0;
-	description = function(s)
-		if s.state == 0 then
-			p ("Поле В3 не заполнено. Сюда можно поставить нолик.")
-		end;
-		if s.state == 1 then
-			p ("На поле В3 стоит крестик.")
-		end;
-		if s.state == 2 then
-			p ("На поле В3 стоит нолик.")
-		end;
-	end;
-	before_Receive = function(s, w)
-		if (w == _'room16_o') then
-			if (_'room16_wardrobe'.turn == 0) then
-				if (s.state == 0) then
-					if (pl:have(_'dagger')) then
-						p ('Остриём кинжала ты выцарапываешь нолик на поле В3.')
-						s.state = 2
-						_'room16_wardrobe'.turn = 1
-						_'room16_AI'.state = _'room16_AI'.state + 1
-						_'room16_AI':continue()
-					else
-						p ('Чтобы поставить нолик, нужен кинжал.')
-					end;
-				else
-					p ('Это поле уже заполнено. Нельзя же играть не по правилам!')
-				end;
-			else
-				p ('Ты уже поставила один нолик в этом ходу. Нельзя же играть не по правилам!')
-			end;
-		else
-			if (w == _'room16_x' and _'room16_wardrobe'.state >= 4) then
-				if (_'room16_wardrobe'.turn == 0) then
-					if (s.state == 0) then
-						if (pl:have(_'dagger')) then
-							p ('Остриём кинжала ты выцарапываешь крестик на поле В3.')
-							s.state = 1
-							_'room16_wardrobe'.turn = 1
-							_'room16_AI'.state = _'room16_AI'.state + 1
-						else
-							p ('Чтобы поставить крестик, нужен кинжал.')
-						end;
-					else
-						p ('Это поле уже заполнено. Нельзя же играть не по правилам!')
-					end;
-				end;				
-			else
-				p ('Что??')
-			end;
-		end;
-	end;
-}:attr 'scenery, static, supporter'
+}
 
 obj {
 	-"ИИ комнаты 16";
@@ -1099,7 +644,7 @@ obj {
 	win = 0;
 	daemon_stage = 0;
 	daemon_dop = 0;
-	describe = function()
+	describe = function(s)
 		if(_'room16_a1'.state == 1) then
 			p('На поле А1 стоит крестик.')
 		end;
@@ -1154,104 +699,7 @@ obj {
 		if(_'room16_c3'.state == 2) then
 			p('На поле В3 стоит нолик.')
 		end;
-		if(_'room16_a1'.state == 1 and _'room16_a2'.state == 1 and _'room16_a3'.state == 1) then _'room16_AI'.win = 1; end;
-		if(_'room16_a1'.state == 1 and _'room16_b1'.state == 1 and _'room16_c1'.state == 1) then _'room16_AI'.win = 1; end;
-		if(_'room16_a3'.state == 1 and _'room16_b3'.state == 1 and _'room16_c3'.state == 1) then _'room16_AI'.win = 1; end;
-		if(_'room16_c1'.state == 1 and _'room16_c2'.state == 1 and _'room16_c3'.state == 1) then _'room16_AI'.win = 1; end;
-		if(_'room16_b1'.state == 1 and _'room16_b2'.state == 1 and _'room16_b3'.state == 1) then _'room16_AI'.win = 1; end;
-		if(_'room16_a2'.state == 1 and _'room16_b2'.state == 1 and _'room16_c2'.state == 1) then _'room16_AI'.win = 1; end;
-		if(_'room16_a1'.state == 1 and _'room16_b2'.state == 1 and _'room16_c3'.state == 1) then _'room16_AI'.win = 1; end;
-		if(_'room16_a3'.state == 1 and _'room16_b2'.state == 1 and _'room16_c1'.state == 1) then _'room16_AI'.win = 1; end;
-		if(_'room16_a1'.state == 2 and _'room16_a2'.state == 2 and _'room16_a3'.state == 2) then _'room16_AI'.win = 2; end;
-		if(_'room16_a1'.state == 2 and _'room16_b1'.state == 2 and _'room16_c1'.state == 2) then _'room16_AI'.win = 2; end;
-		if(_'room16_a3'.state == 2 and _'room16_b3'.state == 2 and _'room16_c3'.state == 2) then _'room16_AI'.win = 2; end;
-		if(_'room16_c1'.state == 2 and _'room16_c2'.state == 2 and _'room16_c3'.state == 2) then _'room16_AI'.win = 2; end;
-		if(_'room16_b1'.state == 2 and _'room16_b2'.state == 2 and _'room16_b3'.state == 2) then _'room16_AI'.win = 2; end;
-		if(_'room16_a2'.state == 2 and _'room16_b2'.state == 2 and _'room16_c2'.state == 2) then _'room16_AI'.win = 2; end;
-		if(_'room16_a1'.state == 2 and _'room16_b2'.state == 2 and _'room16_c3'.state == 2) then _'room16_AI'.win = 2; end;
-		if(_'room16_a3'.state == 2 and _'room16_b2'.state == 2 and _'room16_c1'.state == 2) then _'room16_AI'.win = 2; end;
-		if(_'room16_wardrobe'.state < 4) then
-			if(_'room16_AI'.win == 1) then
-				p('Три крестика соединены линией: кажется, ты проиграла. Вдруг таинственная сила отбрасывает тебя от шкафа, а его дверцы захлопываются.')
-				_'room16_wardrobe'.state = 0;
-				_'room16_AI'.state = 0;
-				_'room16_wardrobe':attr '~open';
-				_'room16_a1'.state = 0;
-				_'room16_a2'.state = 0;
-				_'room16_a3'.state = 0;
-				_'room16_b1'.state = 0;
-				_'room16_b2'.state = 1;
-				_'room16_b3'.state = 0;
-				_'room16_c1'.state = 0;
-				_'room16_c2'.state = 0;
-				_'room16_c3'.state = 0;
-				_'room16_AI'.win = 0;
-			end;
-			--if(_'room16_a1'.state ~= 0 and _'room16_a2'.state ~= 0 and _'room16_a3'.state ~= 0 and _'room16_b1'.state ~= 0 and _'room16_b2'.state ~= 0 and _'room16_b3'.state ~= 0 and _'room16_c1'.state ~= 0 and _'room16_c2'.state ~= 0 and _'room16_c3'.state ~= 0) then
-			if(_'room16_AI'.state == 4) then
-				p('Все поля исцарапаны, но никто не победил. Вдруг шкаф начинает трястись, и таинственная сила отбрасывает тебя в другой конец комнаты. Шкаф захлопывается.')
-				if(_'room16_AI'.game == 0) then _'room16_wardrobe'.firsttime = 0; end;
-				_'room16_AI'.game = 1;
-				_'room16_wardrobe'.state = 0;
-				_'room16_AI'.state = 0;
-				_'room16_wardrobe':attr '~open';
-				_'room16_a1'.state = 0;
-				_'room16_a2'.state = 0;
-				_'room16_a3'.state = 0;
-				_'room16_b1'.state = 0;
-				_'room16_b2'.state = 1;
-				_'room16_b3'.state = 0;
-				_'room16_c1'.state = 0;
-				_'room16_c2'.state = 0;
-				_'room16_c3'.state = 0;
-			end;
-		else
-			if(_'room16_AI'.win == 1) then
-				p('Три крестика соединены линией: ты выиграла. Не совсем, правда, понятно, у кого. Стоит тебе об этом подумать, как все крестики и нолики исчезают, оставляя таблицу пустой.')
-				_'room16_AI'.state = 0;
-				_'room16_a1'.state = 0;
-				_'room16_a2'.state = 0;
-				_'room16_a3'.state = 0;
-				_'room16_b1'.state = 0;
-				_'room16_b2'.state = 0;
-				_'room16_b3'.state = 0;
-				_'room16_c1'.state = 0;
-				_'room16_c2'.state = 0;
-				_'room16_c3'.state = 0;
-				_'room16_wardrobe'.turn = 0;
-				_'room16_AI'.win = 0;
-			end;
-			if(_'room16_AI'.win == 2) then
-				p('Три нолика соединены линией: кто бы ни был твоим воображаемым противником, ты проиграла. Стоит тебе об этом подумать, как все крестики и нолики исчезают, оставляя таблицу пустой.')
-				_'room16_AI'.state = 0;
-				_'room16_a1'.state = 0;
-				_'room16_a2'.state = 0;
-				_'room16_a3'.state = 0;
-				_'room16_b1'.state = 0;
-				_'room16_b2'.state = 0;
-				_'room16_b3'.state = 0;
-				_'room16_c1'.state = 0;
-				_'room16_c2'.state = 0;
-				_'room16_c3'.state = 0;
-				_'room16_wardrobe'.turn = 0;
-				_'room16_AI'.win = 0;
-			end;
-			if(_'room16_a1'.state ~= 0 and _'room16_a2'.state ~= 0 and _'room16_a3'.state ~= 0 and _'room16_b1'.state ~= 0 and _'room16_b2'.state ~= 0 and _'room16_b3'.state ~= 0 and _'room16_c1'.state ~= 0 and _'room16_c2'.state ~= 0 and _'room16_c3'.state ~= 0) then
-				p('Все поля заполнены, но никто не победил. Кто бы ни был твоим воображаемым противником, у вас ничья. Стоит тебе об этом подумать, как все крестики и нолики исчезают, оставляя таблицу пустой.')
-				_'room16_AI'.state = 0;
-				_'room16_a1'.state = 0;
-				_'room16_a2'.state = 0;
-				_'room16_a3'.state = 0;
-				_'room16_b1'.state = 0;
-				_'room16_b2'.state = 0;
-				_'room16_b3'.state = 0;
-				_'room16_c1'.state = 0;
-				_'room16_c2'.state = 0;
-				_'room16_c3'.state = 0;
-				_'room16_wardrobe'.turn = 0;
-				_'room16_AI'.win = 0;			
-			end;
-		end;
+		s:checkwin();
 	end;
 	checkwin = function()
 		if(_'room16_a1'.state == 1 and _'room16_a2'.state == 1 and _'room16_a3'.state == 1) then _'room16_AI'.win = 1; end;
@@ -1659,32 +1107,17 @@ dlg {
 		[[-- Настюха, ты что ли? -- прозревает тётя Агата.]];
 		{
 			'Ну конечно!',
-			function() walk 'room16_dialogueA'; end;
+			function() _'room16_dialogueA'.obj[1].obj[3]:disable(); walk 'room16_dialogueA'; end;
 		},
 		{
 			'Что с тобой, тётушка?',
-			function() walk 'room16_dialogueB'; end;
+			function() walk 'room16_dialogueA'; end;
 		},
 	};
 }
 
 dlg {
 	nam = 'room16_dialogueA';
-	phr = {
-		[[-- Значит, приставы завербовали и тебя. Но знаешь, что я тебе скажу?]],
-		{
-			'Какие ещё приставы?',
-			function() walk 'room16_cutsceneA'; end;
-		},
-		{
-			'Меня никто не вербовал!',
-			function() walk 'room16_cutsceneA'; end;
-		},
-	};
-}
-
-dlg {
-	nam = 'room16_dialogueB';
 	phr = {
 		[[-- Значит, приставы завербовали и тебя. Но знаешь, что я тебе скажу?]],
 		{
@@ -1717,28 +1150,23 @@ cutscene {
 
 cutscene {
 	nam = 'room16_cutsceneRun';
-	text = {
-		"Ты со всех ног выбегаешь из комнаты.";
-		"Тётка не отстаёт!";
-	};
+	text = function(s,num)
+		local lines = {};
+		table.insert(lines, "Ты со всех ног выбегаешь из комнаты.");
+		table.insert(lines, "Тётка не отстаёт!");
+		if not _'gun'.magneted and _'gun':has'scenery' then
+			table.insert(lines, "По пути ты хватаешь из витрины пистолет.");
+		end
+		return lines[num];
+	end;
 	next_to = function()
 		if not _'gun'.magneted and _'gun':has'scenery' then
 			take('gun');
 			_'gun':attr'~scenery';
-			walk 'room16_take_gun';
-		else
-			DaemonStart 'room16_AI';
-			walk 'room14_secondfloor';
 		end
+		DaemonStart 'room16_AI';
+		walk 'room14_secondfloor';
 	end;
-}
-
-cutscene  {
-	nam = 'room16_take_gun';
-	text = {
-		"По пути ты хватаешь из витрины пистолет.";
-	};
-	next_to = function() DaemonStart 'room16_AI'; walk 'room14_secondfloor'; end;
 }
 
 obj {
@@ -1778,7 +1206,7 @@ obj {
 			p 'Ты серьёзно?'	
 		end;
 	end;
-	before_Attack = function(s)
+	["before_Attack,Tear"] = function(s)
 		if(pl:have(_'dagger')) then
 			_'room16_AI'.daemon_stage = 7
 		else
@@ -1795,32 +1223,13 @@ obj {
 			p 'Ты серьёзно?'
 		end;
 	end;	
-	before_Tear = function(s)
-		if(pl:have(_'dagger')) then
-			_'room16_AI'.daemon_stage = 7
-		else
-			_'room16_AI'.daemon_stage = 6		
-		end;
-	end;	
-	before_Talk = function(s)
+	["before_Talk,Tell,Ask,AskTo,AskFor,Answer"] = function(s)
 		p('Разговаривать с тётей, когда она в таком состоянии, бессмысленно.')
 	end;	
-	before_Tell = function(s)
-		p('Разговаривать с тётей, когда она в таком состоянии, бессмысленно.')
-	end;	
-	before_Ask = function(s)
-		p('Разговаривать с тётей, когда она в таком состоянии, бессмысленно.')
-	end;	
-	before_AskFor = function(s)
-		p('Разговаривать с тётей, когда она в таком состоянии, бессмысленно.')
-	end;	
-	before_AskTo = function(s)
-		p('Разговаривать с тётей, когда она в таком состоянии, бессмысленно.')
-	end;	
-	before_Answer = function(s)
-		p('Разговаривать с тётей, когда она в таком состоянии, бессмысленно.')
+	before_Kiss = function(s)
+		p 'Думаешь, поцелуй истинной любви исцелит тётю? Увы, не всё так просто.'
 	end;
-	["before_Take,Remove,Enter,PutOn,Insert"] = function(s,w)
+	["before_Take,Remove,Enter,PutOn,Insert,Open,Close,Taste,Eat,Pull,Turn,PushDir,Dig,Tie,Blow,Touch"] = function(s,w)
 		p 'Ты серьёзно?'
 	end;
 	obj = {
